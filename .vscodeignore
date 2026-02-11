@@ -1,0 +1,26 @@
+.vscode/**
+.vscode-test/**
+src/**
+.gitignore
+.yarnrc
+vsc-extension-quickstart.md
+**/tsconfig.json
+**/.eslintrc.json
+**/*.map
+**/*.ts
+node_modules/**
+test/**
+
+# ドキュメント類（README.md以外）
+docs/**
+PUBLISHING.md
+CHANGELOG.md
+
+# ビルド関連
+esbuild.js
+eslint.config.mjs
+*.vsix
+
+# その他
+.DS_Store
+*.log

@@ -1,0 +1,90 @@
+{
+  "name": "nokto-kalkulo",
+  "displayName": "NoktoKalkulo",
+  "description": "小説原稿の文字数カウント",
+  "version": "0.1.0",
+  "publisher": "YOUR-PUBLISHER-ID",
+  "author": {
+    "name": "jgishiko"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jgishiko/nokto-kalkulo.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jgishiko/nokto-kalkulo/issues"
+  },
+  "homepage": "https://github.com/jgishiko/nokto-kalkulo#readme",
+  "keywords": [
+    "novel",
+    "writing",
+    "word count",
+    "japanese",
+    "markdown",
+    "nocturne novels",
+    "文字数カウント",
+    "小説執筆"
+  ],
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "nokto.countWords",
+        "title": "NoktoKalkulo: Count Manuscript Words"
+      }
+    ],
+    "configuration": {
+      "title": "NoktoKalkulo",
+      "properties": {
+        "nokto.wordCount.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "文字数カウント機能を有効にする"
+        },
+        "nokto.wordCount.targetWords": {
+          "type": "number",
+          "default": 5000,
+          "description": "目標文字数"
+        },
+        "nokto.wordCount.showInStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "ステータスバーに表示"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node ./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
+    "package": "node ./esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.80.0",
+    "@types/mocha": "^10.0.6",
+    "@types/node": "^20.x",
+    "@typescript-eslint/eslint-plugin": "^8.17.0",
+    "@typescript-eslint/parser": "^8.17.0",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.4.1",
+    "eslint": "^9.18.0",
+    "esbuild": "^0.24.2",
+    "typescript": "^5.7.2"
+  }
+}

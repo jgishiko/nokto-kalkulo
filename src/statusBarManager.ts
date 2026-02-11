@@ -16,19 +16,26 @@ export class StatusBarManager {
 
   /**
    * 文字数を更新して表示
-   * @param count 現在の文字数
+   * @param currentCount 現在のファイルの文字数
+   * @param draftTotal draftディレクトリの合計文字数
    * @param target 目標文字数（オプション）
    */
-  update(count: number, target?: number): void {
-    const countStr = count.toLocaleString('ja-JP');
+  update(currentCount: number, draftTotal: number, target?: number): void {
+    const currentStr = currentCount.toLocaleString('ja-JP');
+    const draftStr = draftTotal.toLocaleString('ja-JP');
     
     if (target && target > 0) {
       const targetStr = target.toLocaleString('ja-JP');
-      const percentage = Math.round((count / target) * 100);
-      this.statusBarItem.text = `$(edit) ${countStr}字 / ${targetStr}字 (${percentage}%)`;
+      const percentage = draftTotal > 0 ? Math.round((draftTotal / target) * 100) : 0;
+      
+      if (draftTotal > 0) {
+        this.statusBarItem.text = `$(edit) ${currentStr}字 | ${draftStr}字 / ${targetStr}字 (${percentage}%)`;
+      } else {
+        this.statusBarItem.text = `$(edit) ${currentStr}字 / ${targetStr}字`;
+      }
       
       // 目標達成時は色を変更
-      if (count >= target) {
+      if (draftTotal >= target) {
         this.statusBarItem.backgroundColor = new vscode.ThemeColor(
           'statusBarItem.warningBackground'
         );
@@ -36,7 +43,11 @@ export class StatusBarManager {
         this.statusBarItem.backgroundColor = undefined;
       }
     } else {
-      this.statusBarItem.text = `$(edit) ${countStr}字`;
+      if (draftTotal > 0) {
+        this.statusBarItem.text = `$(edit) ${currentStr}字 | ${draftStr}字`;
+      } else {
+        this.statusBarItem.text = `$(edit) ${currentStr}字`;
+      }
       this.statusBarItem.backgroundColor = undefined;
     }
     

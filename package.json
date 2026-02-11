@@ -8,6 +8,7 @@
     "name": "jgishiko"
   },
   "license": "MIT",
+  "icon": "icon.png",
   "repository": {
     "type": "git",
     "url": "https://github.com/jgishiko/nokto-kalkulo.git"

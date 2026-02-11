@@ -7,6 +7,7 @@ let controller: WordCountController | undefined;
  * 拡張機能の有効化
  */
 export function activate(context: vscode.ExtensionContext) {
+  // eslint-disable-next-line no-undef
   console.log('NoktoKalkulo が起動しました');
 
   // コントローラーを初期化

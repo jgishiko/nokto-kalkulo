@@ -6,6 +6,8 @@
  * - 三点リーダー（…）: 2文字
  * - ダッシュ（―）: 1文字
  * - 改行・空白: 除外
+ * - 引用行（> で始まる行）: 除外
+ * - HTMLタグ: 除外
  */
 export class ManuscriptParser {
   /**
@@ -41,27 +43,33 @@ export class ManuscriptParser {
     // HTMLコメント除外
     let text = content.replace(/<!--[\s\S]*?-->/g, '');
 
+    // HTMLタグ除外
+    text = text.replace(/<[^>]*>/g, '');
+
     // コードブロック除外
     text = text.replace(/```[\s\S]*?```/g, '');
 
     // インラインコード除外
     text = text.replace(/`[^`]+`/g, '');
 
+    // 引用行全体を除外（> で始まる行）
+    text = text.replace(/^>+\s*.*$/gm, '');
+
     // 見出し行全体を除外（メタデータとして扱う）
     text = text.replace(/^#+\s+.*$/gm, '');
 
     // リスト記号除外
-    text = text.replace(/^[\*\-\+]\s+/gm, '');
+    text = text.replace(/^[*\-+]\s+/gm, '');
     text = text.replace(/^\d+\.\s+/gm, '');
 
     // 強調記号除外（内容は残す）
-    text = text.replace(/\*\*([^\*]+)\*\*/g, '$1');
-    text = text.replace(/\*([^\*]+)\*/g, '$1');
+    text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+    text = text.replace(/\*([^*]+)\*/g, '$1');
     text = text.replace(/__([^_]+)__/g, '$1');
     text = text.replace(/_([^_]+)_/g, '$1');
 
     // リンク除外（テキスト部分は残す）
-    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
 
     return text;
   }
@@ -91,6 +99,7 @@ export class ManuscriptParser {
    * デバッグ用：各ステップの結果を出力
    */
   debug(content: string): void {
+    /* eslint-disable no-undef */
     console.log('=== ManuscriptParser Debug ===');
     console.log('1. Original:', content.substring(0, 100));
 
@@ -108,5 +117,6 @@ export class ManuscriptParser {
 
     console.log('Final count:', step4.length);
     console.log('==============================');
+    /* eslint-enable no-undef */
   }
 }

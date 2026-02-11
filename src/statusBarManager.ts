@@ -25,7 +25,7 @@ export class StatusBarManager {
     if (target && target > 0) {
       const targetStr = target.toLocaleString('ja-JP');
       const percentage = Math.round((count / target) * 100);
-      this.statusBarItem.text = `📝 ${countStr}字 / ${targetStr}字 (${percentage}%)`;
+      this.statusBarItem.text = `$(edit) ${countStr}字 / ${targetStr}字 (${percentage}%)`;
       
       // 目標達成時は色を変更
       if (count >= target) {
@@ -36,7 +36,7 @@ export class StatusBarManager {
         this.statusBarItem.backgroundColor = undefined;
       }
     } else {
-      this.statusBarItem.text = `📝 ${countStr}字`;
+      this.statusBarItem.text = `$(edit) ${countStr}字`;
       this.statusBarItem.backgroundColor = undefined;
     }
     

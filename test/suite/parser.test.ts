@@ -70,6 +70,34 @@ suite('ManuscriptParser Test Suite', () => {
     assert.strictEqual(count, 7);
   });
 
+  test('HTMLタグは除外', () => {
+    const text = '彼は<strong>強く</strong>決意した。';
+    const count = parser.countWords(text);
+    // "彼は強く決意した。" = 9文字
+    assert.strictEqual(count, 9);
+  });
+
+  test('自己閉じHTMLタグは除外', () => {
+    const text = '物語が<br />始まった。';
+    const count = parser.countWords(text);
+    // "物語が始まった。" = 8文字
+    assert.strictEqual(count, 8);
+  });
+
+  test('Markdown引用行は除外', () => {
+    const text = '> これは引用です。\n\n通常の文章です。';
+    const count = parser.countWords(text);
+    // "通常の文章です。" = 8文字
+    assert.strictEqual(count, 8);
+  });
+
+  test('ネストした引用行も除外', () => {
+    const text = '> 引用レベル1\n>> 引用レベル2\n\n本文です。';
+    const count = parser.countWords(text);
+    // "本文です。" = 5文字
+    assert.strictEqual(count, 5);
+  });
+
   test('複合的なテスト', () => {
     const text = `## 第一章
 

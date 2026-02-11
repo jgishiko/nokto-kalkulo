@@ -47,7 +47,7 @@ export class WordCountController {
   /**
    * エディタ切り替え時のハンドラ
    */
-  private onDidChangeActiveTextEditor(editor?: vscode.TextEditor): void {
+  private onDidChangeActiveTextEditor(): void {
     this.updateWordCount();
   }
 

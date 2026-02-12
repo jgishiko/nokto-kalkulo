@@ -151,7 +151,8 @@ export class WordCountController {
     const currentCount = this.parser.countWords(content);
 
     // 同じディレクトリの合計文字数を取得
-    const directoryTotal = await this.getDirectoryTotalCount(editor.document.uri);
+    const directoryUri = vscode.Uri.joinPath(editor.document.uri, '..');
+    const directoryTotal = await this.countFilesInDirectory(directoryUri);
 
     // ステータスバーに表示
     if (config.showInStatusBar) {
@@ -162,15 +163,12 @@ export class WordCountController {
   }
 
   /**
-   * 現在のファイルと同じディレクトリ内の全ファイルの合計文字数を取得
+   * 指定したディレクトリ（配下のサブディレクトリを含む）内の全ファイルの合計文字数を取得
    */
-  private async getDirectoryTotalCount(currentFileUri: vscode.Uri): Promise<number> {
+  private async countFilesInDirectory(directoryUri: vscode.Uri): Promise<number> {
     try {
-      // 現在のファイルのディレクトリパスを取得
-      const currentDir = vscode.Uri.joinPath(currentFileUri, '..');
-
-      // 同じディレクトリ内のmarkdownファイルを検索
-      const pattern = new vscode.RelativePattern(currentDir, '*.md');
+      // ディレクトリ配下のすべてのmarkdownファイルを検索（サブディレクトリも含む）
+      const pattern = new vscode.RelativePattern(directoryUri, '**/*.md');
       const files = await vscode.workspace.findFiles(pattern);
 
       // 各ファイルの文字数を合計

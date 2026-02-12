@@ -17,7 +17,7 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
 - Markdown原稿ファイルの文字数カウント機能
 - ステータスバーへのリアルタイム表示
 - 目標文字数との比較表示
-- ノクターンノベルズ投稿規則に準拠したカウント
+- 柔軟な文字数カウント規則
   - 会話文（「」内）を1文字としてカウント
   - 三点リーダー（…）を2文字としてカウント
   - ダッシュ（―）を1文字としてカウント

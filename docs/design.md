@@ -1,6 +1,6 @@
-# Nocturne Word Count - VS Code拡張機能設計
+# NoktoKalkulo - VS Code拡張機能設計
 
-ノクターンノベルズ用原稿の本文文字数カウント拡張機能
+小説原稿の本文文字数カウント拡張機能
 
 ---
 
@@ -62,8 +62,8 @@ Markdown原稿ファイル内の「## 本文」セクションの文字数を正
 
 ### コマンドパレット
 
-- `Nocturne: Count Manuscript Words` - 手動カウント実行
-- `Nocturne: Show Word Count Details` - 詳細情報表示
+- `NoktoKalkulo: Count Manuscript Words` - 手動カウント実行
+- `NoktoKalkulo: Show Word Count Details` - 詳細情報表示
 
 ---
 

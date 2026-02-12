@@ -1,6 +1,6 @@
-# Nocturne Word Count - 開発ガイド
+# NoktoKalkulo - 開発ガイド
 
-ノクターンノベルズ原稿用文字数カウントVS Code拡張機能の開発手順
+小説原稿用文字数カウントVS Code拡張機能の開発手順
 
 ---
 
@@ -28,7 +28,7 @@ npm install -g typescript
 
 ```bash
 # プロジェクトディレクトリへ移動
-cd c:\Users\yoshihisa\OneDrive\Documents\GitHub\Nocturne
+cd c:\Users\yoshihisa\OneDrive\Documents\GitHub\nokto-kalkulo
 
 # Yeomanで拡張機能プロジェクトを作成
 yo code
@@ -41,13 +41,13 @@ yo code
   → New Extension (TypeScript)
 
 ? What's the name of your extension?
-  → Nocturne Word Count
+  → NoktoKalkulo
 
 ? What's the identifier of your extension?
-  → nocturne-word-count
+  → nokto-kalkulo
 
 ? What's the description of your extension?
-  → ノクターンノベルズ原稿の文字数カウント機能
+  → 小説原稿の文字数カウント機能
 
 ? Initialize a git repository?
   → No（既存のリポジトリを使用）
@@ -66,14 +66,14 @@ yo code
 プロジェクト作成後の推奨構成：
 
 ```text
-nocturne-word-count/
+nokto-kalkulo/
 ├── package.json                  # 拡張機能マニフェスト
 ├── tsconfig.json                 # TypeScript設定
 ├── .vscodeignore                # パッケージング時の除外ファイル
 ├── src/
 │   ├── extension.ts             # エントリーポイント
 │   ├── wordCountController.ts   # メインコントローラー
-│   ├── manuscriptParser.ts      # パーサー（.vscodeから移動）
+│   ├── manuscriptParser.ts      # パーサー
 │   ├── statusBarManager.ts      # ステータスバー管理
 │   └── targetExtractor.ts       # プロット目標抽出（後で実装）
 ├── test/
@@ -91,9 +91,9 @@ nocturne-word-count/
 
 ```json
 {
-  "name": "nocturne-word-count",
-  "displayName": "Nocturne Word Count",
-  "description": "ノクターンノベルズ原稿の文字数カウント",
+  "name": "nokto-kalkulo",
+  "displayName": "NoktoKalkulo",
+  "description": "小説原稿の文字数カウント",
   "version": "0.1.0",
   "engines": {
     "vscode": "^1.80.0"
@@ -108,24 +108,24 @@ nocturne-word-count/
   "contributes": {
     "commands": [
       {
-        "command": "nocturne.countWords",
-        "title": "Nocturne: Count Manuscript Words"
+        "command": "nokto.countWords",
+        "title": "NoktoKalkulo: Count Manuscript Words"
       }
     ],
     "configuration": {
-      "title": "Nocturne Word Count",
+      "title": "NoktoKalkulo",
       "properties": {
-        "nocturne.wordCount.enabled": {
+        "nokto.wordCount.enabled": {
           "type": "boolean",
           "default": true,
           "description": "文字数カウント機能を有効にする"
         },
-        "nocturne.wordCount.targetWords": {
+        "nokto.wordCount.targetWords": {
           "type": "number",
           "default": 5000,
           "description": "目標文字数"
         },
-        "nocturne.wordCount.showInStatusBar": {
+        "nokto.wordCount.showInStatusBar": {
           "type": "boolean",
           "default": true,
           "description": "ステータスバーに表示"

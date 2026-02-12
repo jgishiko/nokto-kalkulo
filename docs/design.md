@@ -6,7 +6,7 @@
 
 ## 機能概要
 
-Markdown原稿ファイル内の「## 本文」セクションの文字数を正確にカウントし、ステータスバーに表示する。
+Markdown原稿ファイル内の文字数を正確にカウントし、ステータスバーに表示する。
 
 ---
 
@@ -14,29 +14,24 @@ Markdown原稿ファイル内の「## 本文」セクションの文字数を正
 
 ### ✅ カウントする文字
 
-- 「## 本文」セクション配下のすべてのテキスト
+- 原稿内のすべてのテキスト
 - 日本語文字（ひらがな、カタカナ、漢字）
 - 英数字
 - 記号・句読点
 
 ### ❌ カウントしない文字
 
-1. **メタ情報**
-   - `# タイトル` 行（最上位の見出し）
-   - `## 本文` より前のセクション
-   - `## 本文` より後のセクション（`## メモ`、`## 進捗` など）
-
-2. **Markdown記法**
+1. **Markdown記法**
    - 見出し記号：`#`、`##`、`###`
    - リスト記号：`-`、`*`、`+`、`1.`
    - 強調記号：`**`、`*`、`__`、`_`
    - コードブロック：` ``` `
 
-3. **HTMLコメント**
+2. **HTMLコメント**
    - `<!-- ... -->` 内のすべてのテキスト
    - 複数行にまたがるコメントも除外
 
-4. **空白文字**
+3. **空白文字**
    - 半角スペース
    - 全角スペース
    - タブ文字（`\t`）
@@ -78,10 +73,10 @@ extension.ts
 │   ├── updateWordCount() - 文字数更新
 │   └── onDocumentChange() - ドキュメント変更監視
 ├── ManuscriptParser - 原稿パーサー
-│   ├── extractMainSection() - 本文セクション抽出
-│   ├── removeComments() - コメント除去
-│   ├── removeMarkdownSyntax() - Markdown記法除去
-│   └── removeWhitespace() - 空白除去
+│   ├── removeMarkdownElements() - Markdown要素除去
+│   ├── normalizeDialogue() - 会話文の正規化
+│   ├── normalizeSpecialCharacters() - 特殊文字の正規化
+│   └── countWords() - 文字数カウント
 └── StatusBarManager - ステータスバー管理
     ├── update() - 表示更新
     └── setTarget() - 目標文字数設定
@@ -92,97 +87,50 @@ extension.ts
 ```typescript
 class ManuscriptParser {
   /**
-   * 本文セクションを抽出
-   * @param content - Markdownファイルの全内容
-   * @returns 本文セクションのテキスト
-   */
-  extractMainSection(content: string): string {
-    const lines = content.split('\n');
-    let inMainSection = false;
-    let mainContent: string[] = [];
-    
-    for (const line of lines) {
-      // 「## 本文」セクション開始
-      if (line.trim() === '## 本文') {
-        inMainSection = true;
-        continue;
-      }
-      
-      // 次の ## レベル見出しで終了
-      if (inMainSection && line.match(/^##\s+(?!#+)/)) {
-        break;
-      }
-      
-      if (inMainSection) {
-        mainContent.push(line);
-      }
-    }
-    
-    return mainContent.join('\n');
-  }
-
-  /**
-   * HTMLコメントを除去
-   * @param content - テキスト
-   * @returns コメント除去後のテキスト
-   */
-  removeComments(content: string): string {
-    // 複数行コメントと単一行コメントの両方に対応
-    return content.replace(/<!--[\s\S]*?-->/g, '');
-  }
-
-  /**
-   * Markdown記法を除去
-   * @param content - テキスト
-   * @returns Markdown記法除去後のテキスト
-   */
-  removeMarkdownSyntax(content: string): string {
-    let text = content;
-    
-    // 見出し記号を除去
-    text = text.replace(/^#{1,6}\s+/gm, '');
-    
-    // 強調記号を除去
-    text = text.replace(/(\*\*|__)(.*?)\1/g, '$2'); // Bold
-    text = text.replace(/(\*|_)(.*?)\1/g, '$2');    // Italic
-    
-    // リスト記号を除去
-    text = text.replace(/^[\s]*[-*+]\s+/gm, '');
-    text = text.replace(/^[\s]*\d+\.\s+/gm, '');
-    
-    // コードブロックを除去
-    text = text.replace(/```[\s\S]*?```/g, '');
-    text = text.replace(/`([^`]+)`/g, '$1');
-    
-    // リンクを除去してテキストのみ残す
-    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
-    
-    return text;
-  }
-
-  /**
-   * 空白文字を除去
-   * @param content - テキスト
-   * @returns 空白除去後のテキスト
-   */
-  removeWhitespace(content: string): string {
-    return content
-      .replace(/\s+/g, '')  // すべての空白文字（半角スペース、全角スペース、タブ、改行）
-      .replace(/　/g, '');   // 全角スペース（念のため明示的に）
-  }
-
-  /**
    * 文字数をカウント
    * @param content - Markdownファイルの全内容
    * @returns 文字数
    */
   countWords(content: string): number {
-    const mainSection = this.extractMainSection(content);
-    const withoutComments = this.removeComments(mainSection);
-    const withoutMarkdown = this.removeMarkdownSyntax(withoutComments);
-    const withoutWhitespace = this.removeWhitespace(withoutMarkdown);
+    // 1. Markdown要素を除去
+    let text = this.removeMarkdownElements(content);
     
-    return withoutWhitespace.length;
+    // 2. 会話文を1文字に置き換え
+    text = this.normalizeDialogue(text);
+    
+    // 3. 特殊文字を正規化
+    text = this.normalizeSpecialCharacters(text);
+    
+    // 4. 改行と空白を除外
+    text = text.replace(/\s+/g, '');
+    
+    // 5. 文字数をカウント
+    return text.length;
+  }
+
+  /**
+   * Markdown要素を除去
+   */
+  private removeMarkdownElements(content: string): string {
+    // HTMLコメント、タグ、コードブロック、引用行、見出し行などを除去
+    // 詳細は実装参照
+  }
+
+  /**
+   * 会話文を正規化（「」内を1文字に）
+   */
+  private normalizeDialogue(text: string): string {
+    return text.replace(/「[^」]*」/g, 'D');
+  }
+
+  /**
+   * 特殊文字を正規化
+   */
+  private normalizeSpecialCharacters(text: string): string {
+    // 三点リーダー（…）→ 2文字
+    text = text.replace(/…/g, 'EE');
+    // ダッシュ（―）→ 1文字（そのまま）
+    return text;
   }
 }
 ```
@@ -227,11 +175,7 @@ class ManuscriptParser {
 
 ## ファイルスコープ
 
-以下のファイルに対してのみ有効化：
-
-- `**/manuscript/draft/*.md`
-- `**/manuscript/revised/*.md`
-- `**/manuscript/final_manuscript.md`
+すべてのMarkdownファイル（`.md`）が対象です。
 
 ---
 
@@ -281,25 +225,21 @@ class ManuscriptParser {
 
 期待結果：`17字`（空白と改行を除外）
 
-### 5. 複数セクション
+### 5. 見出し除外
 
 ```markdown
 # タイトル
 
-## メモ
-
-これはメモです。
-
-## 本文
+## 第一章
 
 これが本文です。
 
-## 進捗
+## 第二章
 
-これは進捗メモです。
+これも本文です。
 ```
 
-期待結果：`7字`（「これが本文です」のみ）
+期待結果：`14字`（「これが本文です」+「これも本文です」、見出し行は除外）
 
 ---
 

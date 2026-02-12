@@ -73,12 +73,8 @@ export class WordCountController {
    * 原稿ファイルかどうかを判定
    */
   private isManuscriptFile(document: vscode.TextDocument): boolean {
-    // Markdownファイルかつmanuscriptフォルダ内
-    return (
-      document.languageId === 'markdown' &&
-      (document.uri.fsPath.includes('manuscript') ||
-       document.uri.fsPath.includes('plot'))
-    );
+    // Markdownファイルが対象
+    return document.languageId === 'markdown';
   }
 
   /**

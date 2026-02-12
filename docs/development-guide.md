@@ -199,9 +199,8 @@ export class WordCountController {
   }
 
   private isManuscriptFile(document: vscode.TextDocument): boolean {
-    // manuscript フォルダ内のmdファイルかチェック
-    return document.languageId === 'markdown' && 
-           document.uri.fsPath.includes('manuscript');
+    // Markdownファイルが対象
+    return document.languageId === 'markdown';
   }
 
   private updateWordCount() {

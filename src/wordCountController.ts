@@ -83,11 +83,18 @@ export class WordCountController {
    */
   private async getConfiguration(fileUri?: vscode.Uri) {
     const config = vscode.workspace.getConfiguration('nokto.wordCount');
-    const baseConfig = {
+    const baseConfig: {
+      enabled: boolean;
+      minWords?: number;
+      targetWords: number;
+      showInStatusBar: boolean;
+      showBackgroundColor: boolean;
+    } = {
       enabled: config.get<boolean>('enabled', true),
-      minWords: config.get<number>('minWords', 0),
+      minWords: undefined, // デフォルトは undefined（機能OFF）
       targetWords: config.get<number>('targetWords', 5000),
       showInStatusBar: config.get<boolean>('showInStatusBar', true),
+      showBackgroundColor: config.get<boolean>('showBackgroundColor', false),
     };
 
     // ディレクトリ固有の設定を読み込む
@@ -98,13 +105,17 @@ export class WordCountController {
         if (directoryConfig.enabled !== undefined) {
           baseConfig.enabled = directoryConfig.enabled;
         }
-        // minWords設定が.nokto.jsonにあれば優先
+        // minWords設定が.nokto.jsonにあれば設定（定義がある場合のみ機能ON）
         if (directoryConfig.minWords !== undefined) {
           baseConfig.minWords = directoryConfig.minWords;
         }
         // targetWords設定が.nokto.jsonにあれば優先
         if (directoryConfig.targetWords !== undefined) {
           baseConfig.targetWords = directoryConfig.targetWords;
+        }
+        // showBackgroundColor設定が.nokto.jsonにあれば優先
+        if (directoryConfig.showBackgroundColor !== undefined) {
+          baseConfig.showBackgroundColor = directoryConfig.showBackgroundColor;
         }
       }
     }
@@ -115,7 +126,7 @@ export class WordCountController {
   /**
    * ディレクトリ固有の設定ファイル（.nokto.json）を読み込む
    */
-  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ enabled?: boolean; minWords?: number; targetWords?: number } | null> {
+  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ enabled?: boolean; minWords?: number; targetWords?: number; showBackgroundColor?: boolean } | null> {
     try {
       const dirUri = vscode.Uri.joinPath(fileUri, '..');
       const configUri = vscode.Uri.joinPath(dirUri, '.nokto.json');
@@ -161,7 +172,7 @@ export class WordCountController {
 
     // ステータスバーに表示
     if (config.showInStatusBar) {
-      this.statusBar.update(currentCount, directoryTotal, config.minWords, config.targetWords);
+      this.statusBar.update(currentCount, directoryTotal, config.minWords, config.targetWords, config.showBackgroundColor);
     } else {
       this.statusBar.hide();
     }

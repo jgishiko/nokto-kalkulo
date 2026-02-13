@@ -20,8 +20,9 @@ export class StatusBarManager {
    * @param draftTotal draftディレクトリの合計文字数
    * @param minWords 最小文字数（オプション）
    * @param target 目標文字数（オプション）
+   * @param showBackgroundColor 背景色を表示するかどうか（デフォルト: false）
    */
-  update(currentCount: number, draftTotal: number, minWords?: number, target?: number): void {
+  update(currentCount: number, draftTotal: number, minWords?: number, target?: number, showBackgroundColor: boolean = false): void {
     const currentStr = currentCount.toLocaleString('ja-JP');
     const draftStr = draftTotal.toLocaleString('ja-JP');
     
@@ -52,27 +53,32 @@ export class StatusBarManager {
     this.statusBarItem.text = displayText;
     
     // 背景色の設定
-    if (minWords !== undefined && minWords > 0 && target !== undefined && target > 0) {
-      if (draftTotal <= minWords) {
-        // 入力文字数が最小文字数以下のとき：赤
-        this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-          'statusBarItem.errorBackground'
-        );
-      } else if (draftTotal >= target) {
-        // 入力文字数が最大文字数以上のとき：緑
+    if (showBackgroundColor) {
+      if (minWords !== undefined && minWords > 0 && target !== undefined && target > 0) {
+        if (draftTotal <= minWords) {
+          // 入力文字数が最小文字数以下のとき：赤
+          this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+            'statusBarItem.errorBackground'
+          );
+        } else if (draftTotal >= target) {
+          // 入力文字数が最大文字数以上のとき：緑
+          this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+            'statusBarItem.warningBackground'
+          );
+        } else {
+          // 最小文字数＜入力文字数＜最大文字数のとき：デフォルト
+          this.statusBarItem.backgroundColor = undefined;
+        }
+      } else if (target && target > 0 && draftTotal >= target) {
+        // 最小文字数の設定がない場合は従来通り
         this.statusBarItem.backgroundColor = new vscode.ThemeColor(
           'statusBarItem.warningBackground'
         );
       } else {
-        // 最小文字数＜入力文字数＜最大文字数のとき：デフォルト
         this.statusBarItem.backgroundColor = undefined;
       }
-    } else if (target && target > 0 && draftTotal >= target) {
-      // 最小文字数の設定がない場合は従来通り
-      this.statusBarItem.backgroundColor = new vscode.ThemeColor(
-        'statusBarItem.warningBackground'
-      );
     } else {
+      // 背景色を表示しない設定の場合
       this.statusBarItem.backgroundColor = undefined;
     }
     

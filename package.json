@@ -51,6 +51,11 @@
           "default": true,
           "description": "文字数カウント機能を有効にする"
         },
+        "nokto.wordCount.minWords": {
+          "type": "number",
+          "default": 0,
+          "description": "最小文字数"
+        },
         "nokto.wordCount.targetWords": {
           "type": "number",
           "default": 5000,

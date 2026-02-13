@@ -85,6 +85,7 @@ export class WordCountController {
     const config = vscode.workspace.getConfiguration('nokto.wordCount');
     const baseConfig = {
       enabled: config.get<boolean>('enabled', true),
+      minWords: config.get<number>('minWords', 0),
       targetWords: config.get<number>('targetWords', 5000),
       showInStatusBar: config.get<boolean>('showInStatusBar', true),
     };
@@ -96,6 +97,10 @@ export class WordCountController {
         // enabled設定が.nokto.jsonにあれば優先
         if (directoryConfig.enabled !== undefined) {
           baseConfig.enabled = directoryConfig.enabled;
+        }
+        // minWords設定が.nokto.jsonにあれば優先
+        if (directoryConfig.minWords !== undefined) {
+          baseConfig.minWords = directoryConfig.minWords;
         }
         // targetWords設定が.nokto.jsonにあれば優先
         if (directoryConfig.targetWords !== undefined) {
@@ -110,7 +115,7 @@ export class WordCountController {
   /**
    * ディレクトリ固有の設定ファイル（.nokto.json）を読み込む
    */
-  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ enabled?: boolean; targetWords?: number } | null> {
+  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ enabled?: boolean; minWords?: number; targetWords?: number } | null> {
     try {
       const dirUri = vscode.Uri.joinPath(fileUri, '..');
       const configUri = vscode.Uri.joinPath(dirUri, '.nokto.json');
@@ -156,7 +161,7 @@ export class WordCountController {
 
     // ステータスバーに表示
     if (config.showInStatusBar) {
-      this.statusBar.update(currentCount, directoryTotal, config.targetWords);
+      this.statusBar.update(currentCount, directoryTotal, config.minWords, config.targetWords);
     } else {
       this.statusBar.hide();
     }

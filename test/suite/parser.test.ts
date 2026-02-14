@@ -211,3 +211,113 @@ suite('ManuscriptParser Test Suite', () => {
     assert.strictEqual(result.dialogue, 0);
     assert.strictEqual(result.narration, 0);
   });
+  // CJK対応テスト
+  test('CJK: ハングル文字がカウントされる', () => {
+    const text = '안녕하세요'; // "こんにちは"（韓国語）
+    const count = parser.countWords(text);
+    // 5文字
+    assert.strictEqual(count, 5);
+  });
+
+  test('CJK: 韓国語の会話表現', () => {
+    const text = '그는 "안녕하세요"라고 말했다.'; 
+    // 彼は「こんにちは」と言った（韓国語）
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 그는안녕하세요라고말했다 = 13文字（""と.は除外）
+    // セリフ: 안녕하세요 = 5文字
+    // 地の文: 그는라고말했다 = 8文字
+    assert.strictEqual(result.total, 13);
+    assert.strictEqual(result.dialogue, 5);
+    assert.strictEqual(result.narration, 8);
+  });
+
+  test('CJK: 中国語簡体字の会話表現', () => {
+    const text = '他说："你好啊！"';
+    // 彼は言った：「こんにちは！」（中国語簡体字）
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 他说你好啊 = 5文字（：""！は除外）
+    // セリフ: 你好啊 = 3文字
+    // 地の文: 他说 = 2文字
+    assert.strictEqual(result.total, 5);
+    assert.strictEqual(result.dialogue, 3);
+    assert.strictEqual(result.narration, 2);
+  });
+
+  test('CJK: 中国語繁体字の会話表現', () => {
+    const text = '他說："你好啊！"';
+    // 彼は言った：「こんにちは！」（中国語繁体字）
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 他說你好啊 = 5文字（：""！は除外）
+    // セリフ: 你好啊 = 3文字
+    // 地の文: 他說 = 2文字
+    assert.strictEqual(result.total, 5);
+    assert.strictEqual(result.dialogue, 3);
+    assert.strictEqual(result.narration, 2);
+  });
+
+  test('CJK: 日本語・中国語・韓国語混在', () => {
+    const text = 'これは日本語です。这是中文。이것은 한국어입니다。';
+    const count = parser.countWords(text);
+    // これは日本語です这是中文이것은한국어입니다 = 23文字（。は除外）
+    assert.strictEqual(count, 23);
+  });
+
+  test('CJK: CJK詳細情報が返される', () => {
+    const text = 'これはテストです。';
+    const result = parser.countWordsDetailed(text);
+    // CJK詳細情報が含まれていることを確認
+    assert.ok(result.cjkDetails);
+    assert.ok(result.cjkDetails.hiragana > 0); // ひらがながある
+    assert.ok(result.cjkDetails.katakana > 0); // カタカナがある
+  });
+
+  test('CJK: 空文字列のCJK詳細情報', () => {
+    const result = parser.countWordsDetailed('');
+    assert.ok(result.cjkDetails);
+    assert.strictEqual(result.cjkDetails.hiragana, 0);
+    assert.strictEqual(result.cjkDetails.katakana, 0);
+    assert.strictEqual(result.cjkDetails.kanji, 0);
+    assert.strictEqual(result.cjkDetails.traditionalChinese, 0);
+    assert.strictEqual(result.cjkDetails.simplifiedChinese, 0);
+    assert.strictEqual(result.cjkDetails.korean, 0);
+    assert.strictEqual(result.cjkDetails.alphanumeric, 0);
+  });
+
+  test('CJK: 日本語文字種の個別カウント', () => {
+    const text = 'これは漢字とカタカナです。';
+    const result = parser.countWordsDetailed(text);
+    assert.ok(result.cjkDetails);
+    // ひらがな: これは、と、です = 5文字
+    assert.strictEqual(result.cjkDetails.hiragana, 5);
+    // カタカナ: カタカナ = 4文字
+    assert.strictEqual(result.cjkDetails.katakana, 4);
+    // 漢字: 漢字 = 2文字
+    assert.strictEqual(result.cjkDetails.kanji, 2);
+  });
+
+  test('CJK: ひらがなのみ', () => {
+    const text = 'これはひらがなです';
+    const result = parser.countWordsDetailed(text);
+    assert.ok(result.cjkDetails);
+    assert.strictEqual(result.cjkDetails.hiragana, 10);
+    assert.strictEqual(result.cjkDetails.katakana, 0);
+    assert.strictEqual(result.cjkDetails.kanji, 0);
+  });
+
+  test('CJK: カタカナのみ', () => {
+    const text = 'コレハカタカナデス';
+    const result = parser.countWordsDetailed(text);
+    assert.ok(result.cjkDetails);
+    assert.strictEqual(result.cjkDetails.hiragana, 0);
+    assert.strictEqual(result.cjkDetails.katakana, 9);
+    assert.strictEqual(result.cjkDetails.kanji, 0);
+  });
+
+  test('CJK: 漢字のみ', () => {
+    const text = '山川海空';
+    const result = parser.countWordsDetailed(text);
+    assert.ok(result.cjkDetails);
+    assert.strictEqual(result.cjkDetails.hiragana, 0);
+    assert.strictEqual(result.cjkDetails.katakana, 0);
+    assert.strictEqual(result.cjkDetails.kanji, 4);
+  });

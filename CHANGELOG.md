@@ -4,6 +4,14 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-02-15
+
+### Fixed
+
+- 🐛 非同期処理の競合による null 参照エラーを修正
+  - `updateWordCount()` が複数回同時に呼ばれた際に `Cannot read properties of null (reading 'total')` エラーが発生する問題を解消
+  - ローカル変数で結果を保持してから一括更新する方式に変更
+
 ### Added
 
 - ✨ **セリフと地の文の分離カウント機能**（2026-02-14）

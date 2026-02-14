@@ -18,7 +18,7 @@ export class StatusBarManager {
    * 文字数を更新して表示
    * @param currentCount 現在のファイルの文字数
    * @param draftTotal draftディレクトリの合計文字数
-   * @param minWords 最小文字数（オプション）
+   * @param minWords 最小文字数（背景色制御用、表示には使用しない）
    * @param target 目標文字数（オプション）
    * @param showBackgroundColor 背景色を表示するかどうか（デフォルト: false）
    */
@@ -26,28 +26,23 @@ export class StatusBarManager {
     const currentStr = currentCount.toLocaleString('ja-JP');
     const draftStr = draftTotal.toLocaleString('ja-JP');
     
-    // 表示テキストを構築: 最小文字数、現在のファイル、ディレクトリ合計、最大文字数
-    let displayText = '';
+    // 表示テキストを構築: 現在のファイル | ディレクトリ合計 / 目標文字数 (達成率)
+    let displayText = `$(edit) `;
     
-    if (minWords !== undefined && minWords > 0) {
-      const minStr = minWords.toLocaleString('ja-JP');
-      displayText = `$(edit) ${minStr}字 | `;
-    } else {
-      displayText = `$(edit) `;
-    }
-    
-    if (draftTotal > 0) {
+    if (draftTotal > 0 && draftTotal !== currentCount) {
+      // ディレクトリに複数ファイルがある場合
       displayText += `${currentStr}字 | ${draftStr}字`;
     } else {
+      // 現在のファイルのみの場合
       displayText += `${currentStr}字`;
     }
     
     if (target && target > 0) {
       const targetStr = target.toLocaleString('ja-JP');
-      displayText += ` | ${targetStr}字`;
-      
-      const percentage = draftTotal > 0 ? Math.round((draftTotal / target) * 100) : 0;
-      displayText += ` (${percentage}%)`;
+      // 達成率はディレクトリ合計がある場合はそれを使用、なければ現在のファイルを使用
+      const countForPercentage = draftTotal > 0 ? draftTotal : currentCount;
+      const percentage = Math.round((countForPercentage / target) * 100);
+      displayText += ` / ${targetStr}字 (${percentage}%)`;
     }
     
     this.statusBarItem.text = displayText;

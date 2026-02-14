@@ -14,24 +14,46 @@ Markdown原稿ファイル内の文字数を正確にカウントし、ステー
 
 ### ✅ カウントする文字
 
-- 原稿内のすべてのテキスト
-- 日本語文字（ひらがな、カタカナ、漢字）
-- 英数字
-- 記号・句読点
+原稿内の **文字要素** のみをカウント：
+
+- **日本語文字**
+  - ひらがな（\u3040-\u309F）
+  - カタカナ（\u30A0-\u30FF）
+  - 漢字（\u4E00-\u9FFF）
+
+- **英数字**
+  - アルファベット（a-z, A-Z）
+  - 全角アルファベット（\uFF21-\uFF3A, \uFF41-\uFF5A）
+  - 半角数字（0-9）
+  - 全角数字（\uFF10-\uFF19）
 
 ### ❌ カウントしない文字
 
-1. **Markdown記法**
-   - 見出し記号：`#`、`##`、`###`
-   - リスト記号：`-`、`*`、`+`、`1.`
-   - 強調記号：`**`、`*`、`__`、`_`
-   - コードブロック：` ``` `
+1. **記号・句読点**
+   - 句読点：`。`、`、`
+   - 括弧：`「」`、`『』`、`（）`、`[]`
+   - 感嘆符・疑問符：`！`、`？`、`!`、`?`
+   - 三点リーダー：`…`
+   - ダッシュ：`―`、`—`
+   - その他の記号類
 
-2. **HTMLコメント**
+2. **Markdown記法**
+   - 見出し行全体：`#`、`##`、`###`で始まる行
+   - リスト記号：`-`、`*`、`+`、`1.`
+   - 強調記号：`**`、`*`、`__`、`_`（内容は残す）
+   - コードブロック：` ``` `で囲まれた部分
+   - インラインコード：`` ` ``で囲まれた部分
+   - 引用行全体：`>`で始まる行
+   - リンク：`[text](url)` のURL部分（テキストは残す）
+
+3. **HTMLコメント**
    - `<!-- ... -->` 内のすべてのテキスト
    - 複数行にまたがるコメントも除外
 
-3. **空白文字**
+4. **HTMLタグ**
+   - `<tag>...</tag>` のタグ部分
+
+5. **空白文字**
    - 半角スペース
    - 全角スペース
    - タブ文字（`\t`）
@@ -43,22 +65,44 @@ Markdown原稿ファイル内の文字数を正確にカウントし、ステー
 
 ### ステータスバー表示
 
+**目標文字数を設定している場合（複数ファイル）**：
 ```
-📝 5,432字 / 目標: 5,000字
+�️ 1,234字 | 3,456字 / 5,000字 (69%)
 ```
 
-- 左側のアイコン：📝（原稿を示す）
-- 現在の文字数：カンマ区切りで表示
-- 目標文字数：プロット情報から自動取得（オプション）
-- 色：
-  - 通常：白
-  - 目標達成：緑
-  - 超過（+10%以上）：黄色
+**目標文字数を設定している場合（単一ファイル）**：
+```
+🖊️ 1,234字 / 5,000字 (25%)
+```
+
+**目標文字数を設定していない場合（複数ファイル）**：
+```
+🖊️ 1,234字 | 3,456字
+```
+
+**目標文字数を設定していない場合（単一ファイル）**：
+```
+🖊️ 1,234字
+```
+
+**表示要素**：
+- アイコン：🖊️（ペンシルアイコン、実装では `$(edit)` を使用）
+- 現在のファイルの文字数：`1,234字`（カンマ区切り）
+- ディレクトリ合計文字数：`3,456字`（複数ファイルの場合のみ表示）
+- 目標文字数：`5,000字`（設定した場合のみ）
+- 達成率：`(69%)`（目標文字数設定時のみ）
+
+**背景色**（`showBackgroundColor` が `true` の場合）：
+- **赤色**：合計文字数 ≤ 最小文字数（`minWords` 設定時）
+- **黄色**：合計文字数 ≥ 目標文字数（`targetWords` 設定時）
+- **デフォルト**：最小文字数 < 合計文字数 < 目標文字数
+
+> **注意**: 最小文字数（`minWords`）はステータスバーには表示されず、背景色の制御にのみ使用されます。
 
 ### コマンドパレット
 
-- `NoktoKalkulo: Count Manuscript Words` - 手動カウント実行
-- `NoktoKalkulo: Show Word Count Details` - 詳細情報表示
+- `NoktoKalkulo: Count Manuscript Words` - 手動カウント実行・通知表示
+- `nokto.debugCount`（開発者向け） - デバッグ情報をコンソールに出力
 
 ---
 
@@ -92,45 +136,86 @@ class ManuscriptParser {
    * @returns 文字数
    */
   countWords(content: string): number {
+    if (!content) {
+      return 0;
+    }
+
     // 1. Markdown要素を除去
     let text = this.removeMarkdownElements(content);
     
-    // 2. 会話文を1文字に置き換え
-    text = this.normalizeDialogue(text);
-    
-    // 3. 特殊文字を正規化
-    text = this.normalizeSpecialCharacters(text);
-    
-    // 4. 改行と空白を除外
-    text = text.replace(/\s+/g, '');
-    
-    // 5. 文字数をカウント
-    return text.length;
+    // 2. 文字要素のみを抽出してカウント
+    return this.countCharacters(text);
+  }
+
+  /**
+   * 文字要素のみをカウント
+   * ひらがな、カタカナ、漢字、アルファベット、数字のみ
+   */
+  private countCharacters(text: string): number {
+    // 文字要素のみにマッチする正規表現
+    const characterRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]/g;
+    const matches = text.match(characterRegex);
+    return matches ? matches.length : 0;
   }
 
   /**
    * Markdown要素を除去
    */
   private removeMarkdownElements(content: string): string {
-    // HTMLコメント、タグ、コードブロック、引用行、見出し行などを除去
-    // 詳細は実装参照
-  }
+    // HTMLコメント除外
+    let text = content.replace(/<!--[\s\S]*?-->/g, '');
 
-  /**
-   * 会話文を正規化（「」内を1文字に）
-   */
-  private normalizeDialogue(text: string): string {
-    return text.replace(/「[^」]*」/g, 'D');
-  }
+    // HTMLタグ除外
+    text = text.replace(/<[^>]*>/g, '');
 
-  /**
-   * 特殊文字を正規化
-   */
-  private normalizeSpecialCharacters(text: string): string {
-    // 三点リーダー（…）→ 2文字
-    text = text.replace(/…/g, 'EE');
-    // ダッシュ（―）→ 1文字（そのまま）
+    // コードブロック除外
+    text = text.replace(/```[\s\S]*?```/g, '');
+
+    // インラインコード除外
+    text = text.replace(/`[^`]+`/g, '');
+
+    // 引用行全体を除外（> で始まる行）
+    text = text.replace(/^>+\s*.*$/gm, '');
+
+    // 見出し行全体を除外（メタデータとして扱う）
+    text = text.replace(/^#+\s+.*$/gm, '');
+
+    // リスト記号除外
+    text = text.replace(/^[*\-+]\s+/gm, '');
+    text = text.replace(/^\d+\.\s+/gm, '');
+
+    // 強調記号除外（内容は残す）
+    text = text.replace(/\*\*([^*]+)\*\*/g, '$1');
+    text = text.replace(/\*([^*]+)\*/g, '$1');
+    text = text.replace(/__([^_]+)__/g, '$1');
+    text = text.replace(/_([^_]+)_/g, '$1');
+
+    // リンク除外（テキスト部分は残す）
+    text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+
     return text;
+  }
+
+  /**
+   * デバッグ用：各ステップの結果を出力
+   */
+  debug(content: string): void {
+    console.log('=== ManuscriptParser Debug ===');
+    console.log('1. Original:', content.substring(0, 100));
+
+    const step1 = this.removeMarkdownElements(content);
+    console.log('2. After removeMarkdown:', step1.substring(0, 100));
+
+    const count = this.countCharacters(step1);
+    console.log('3. Character count:', count);
+    
+    // 抽出された文字の一部を表示
+    const characterRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]/g;
+    const chars = step1.match(characterRegex) || [];
+    console.log('4. Extracted characters (first 50):', chars.slice(0, 50).join(''));
+    
+    console.log('Final count:', count);
+    console.log('==============================');
   }
 }
 ```
@@ -139,43 +224,106 @@ class ManuscriptParser {
 
 ## 設定項目
 
-`settings.json` で以下を設定可能：
+### VS Code設定（settings.json）
 
 ```json
 {
-  "nocturne.wordCount.enabled": true,
-  "nocturne.wordCount.targetWords": 5000,
-  "nocturne.wordCount.autoTarget": true,
-  "nocturne.wordCount.showInStatusBar": true,
-  "nocturne.wordCount.updateDelay": 500
+  "nokto.wordCount.enabled": true,
+  "nokto.wordCount.minWords": 0,
+  "nokto.wordCount.targetWords": 5000,
+  "nokto.wordCount.showInStatusBar": true,
+  "nokto.wordCount.showBackgroundColor": false
 }
 ```
 
 - `enabled` - 機能の有効/無効
-- `targetWords` - 目標文字数（手動設定）
-- `autoTarget` - プロットから目標を自動取得
+- `minWords` - 最小文字数（背景色制御用、ステータスバーには表示されない）
+- `targetWords` - 目標文字数
 - `showInStatusBar` - ステータスバー表示の有効/無効
-- `updateDelay` - 更新の遅延時間（ミリ秒）
+- `showBackgroundColor` - 背景色表示の有効/無効
+
+### ディレクトリ固有設定（.nokto.json）
+
+原稿ファイルのディレクトリに `.nokto.json` を配置することで、その作品専用の設定を指定可能：
+
+```json
+{
+  "enabled": true,
+  "minWords": 3000,
+  "targetWords": 10000,
+  "showBackgroundColor": true
+}
+```
+
+**設定の優先順位**：
+1. `.nokto.json`（ディレクトリ固有設定）
+2. `settings.json`（VS Code設定）
+
+**読み込みタイミング**：
+- ファイルを開いたとき
+- エディタを切り替えたとき
+- ドキュメントを変更したとき
+- 設定ファイルを変更したとき
+
+**minWordsの用途**：
+- ステータスバーには表示されない
+- 背景色の制御にのみ使用
+- 最小文字数以下の場合、背景色を赤に設定（`showBackgroundColor: true` の場合）
 
 ---
 
-## 目標文字数の自動取得（オプション機能）
+## ディレクトリ合計カウント機能
 
-プロットファイル（`plot/plot.md`）から目標文字数を自動取得：
+現在のファイルだけでなく、同じディレクトリ配下（サブディレクトリを含む）のすべての `.md` ファイルの合計文字数を計算して表示します。
 
-1. 現在のファイルから作品フォルダを特定
-2. `plot/plot.md` を読み込み
-3. 以下のパターンを検索：
-   - `合計：X,XXX～X,XXX字`
-   - `推奨文字数：X,XXX字`
-   - `目標文字数: X,XXX字`
-4. 範囲指定の場合は中間値を使用
+### 実装詳細
 
----
+```typescript
+/**
+ * 指定したディレクトリ（配下のサブディレクトリを含む）内の全ファイルの合計文字数を取得
+ */
+private async countFilesInDirectory(directoryUri: vscode.Uri): Promise<number> {
+  try {
+    // ディレクトリ配下のすべてのmarkdownファイルを検索（サブディレクトリも含む）
+    const pattern = new vscode.RelativePattern(directoryUri, '**/*.md');
+    const files = await vscode.workspace.findFiles(pattern);
+
+    // 各ファイルの文字数を合計
+    let totalCount = 0;
+    for (const fileUri of files) {
+      const doc = await vscode.workspace.openTextDocument(fileUri);
+      const content = doc.getText();
+      totalCount += this.parser.countWords(content);
+    }
+
+    return totalCount;
+  } catch (error) {
+    console.error('Error calculating directory total:', error);
+    return 0;
+  }
+}
+```
+
+### 使用例
+
+```
+project/
+├── chapter1.md (1,000字)
+├── chapter2.md (1,500字)
+└── notes/
+    └── outline.md (500字)
+```
+
+`chapter1.md` を開いた場合：
+- 現在のファイル：`1,000字`
+- ディレクトリ合計：`3,000字`（全ファイルの合計）
 
 ## ファイルスコープ
 
 すべてのMarkdownファイル（`.md`）が対象です。
+
+- 現在のエディタで開いているファイルが `.md` の場合にカウントを実行
+- ディレクトリ合計も `.md` ファイルのみをカウント
 
 ---
 
@@ -189,7 +337,7 @@ class ManuscriptParser {
 これはテスト文章です。
 ```
 
-期待結果：`11字`
+期待結果：`11字`（「これはテスト文章です」のみ、見出し行は除外）
 
 ### 2. コメント除外
 
@@ -198,6 +346,74 @@ class ManuscriptParser {
 
 <!-- これはコメント -->
 本文はこれだけ。
+```
+
+期待結果：`8字`（「本文はこれだけ」のみ）
+
+### 3. Markdown記法除外
+
+```markdown
+## 本文
+
+### 見出し
+
+これは**強調**された文章です。
+```
+
+期待結果：`12字`（「これは強調された文章です」のみ、見出し行と強調記号は除外）
+
+### 4. 記号・句読点除外
+
+```markdown
+## 本文
+
+これは、テストです！？「会話文」も含みます。
+```
+
+期待結果：`17字`（「これはテストです会話文も含みます」、記号・句読点は除外）
+
+### 5. 見出し除外
+
+```markdown
+# タイトル
+
+## 第一章
+
+これが本文です。
+
+## 第二章
+
+これも本文です。
+```
+
+期待結果：`14字`（「これが本文です」+「これも本文です」、見出し行は除外）
+
+### 6. 全角・半角混在
+
+```markdown
+## 本文
+
+これはABCと123です。
+テストTESTてすと1234５６７８
+```
+
+期待結果：`29字`（全角・半角問わず、文字要素のみカウント）
+
+### 7. コードブロック除外
+
+```markdown
+## 本文
+
+本文の前
+
+```javascript
+console.log("これはコード");
+```
+
+本文の後
+```
+
+期待結果：`7字`（「本文の前」+「本文の後」、コードブロックは除外）
 ```
 
 期待結果：`8字`
@@ -278,11 +494,14 @@ nocturne-word-count/
 
 ---
 
-## 将来の拡張機能（Phase 2）
+## 将来の拡張機能（Phase 2以降）
 
 - リアルタイム文字数グラフ
 - 執筆速度の計測
 - セクションごとの文字数内訳
-- 複数ファイルの合計文字数
-- プロット配分との比較表示
+- プロットファイルからの目標文字数自動抽出
 - 執筆履歴の記録
+- カスタマイズ可能なカウント規則
+  - 会話文（「」内）を1文字としてカウントするオプション
+  - 三点リーダー（…）を2文字としてカウントするオプション
+  - カンマ区切りの数値表現の扱い

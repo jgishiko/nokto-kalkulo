@@ -91,7 +91,7 @@ export class WordCountController {
       showBackgroundColor: boolean;
     } = {
       enabled: config.get<boolean>('enabled', true),
-      minWords: undefined, // デフォルトは undefined（機能OFF）
+      minWords: undefined, // デフォルトは undefined（背景色制御のみに使用）
       targetWords: config.get<number>('targetWords', 5000),
       showInStatusBar: config.get<boolean>('showInStatusBar', true),
       showBackgroundColor: config.get<boolean>('showBackgroundColor', false),
@@ -105,7 +105,7 @@ export class WordCountController {
         if (directoryConfig.enabled !== undefined) {
           baseConfig.enabled = directoryConfig.enabled;
         }
-        // minWords設定が.nokto.jsonにあれば設定（定義がある場合のみ機能ON）
+        // minWords設定が.nokto.jsonにあれば設定（背景色制御に使用）
         if (directoryConfig.minWords !== undefined) {
           baseConfig.minWords = directoryConfig.minWords;
         }

@@ -63,24 +63,34 @@ yo code
 
 ## ファイル構成
 
-プロジェクト作成後の推奨構成：
+プロジェクト作成後の実際の構成：
 
 ```text
 nokto-kalkulo/
 ├── package.json                  # 拡張機能マニフェスト
 ├── tsconfig.json                 # TypeScript設定
+├── esbuild.js                    # esbuildビルド設定
+├── eslint.config.mjs             # ESLint設定
 ├── .vscodeignore                # パッケージング時の除外ファイル
+├── README.md                     # プロジェクトREADME
+├── CHANGELOG.md                  # 変更履歴
+├── LICENSE                       # ライセンス
+├── PUBLISHING.md                 # 公開ガイド
 ├── src/
 │   ├── extension.ts             # エントリーポイント
 │   ├── wordCountController.ts   # メインコントローラー
-│   ├── manuscriptParser.ts      # パーサー
-│   ├── statusBarManager.ts      # ステータスバー管理
-│   └── targetExtractor.ts       # プロット目標抽出（後で実装）
+│   ├── manuscriptParser.ts      # 原稿パーサー
+│   └── statusBarManager.ts      # ステータスバー管理
 ├── test/
+│   ├── test-cases.md            # テストケース一覧
 │   └── suite/
-│       ├── extension.test.ts
-│       └── parser.test.ts
-└── README.md
+│       ├── index.ts             # テストスイート設定
+│       └── parser.test.ts       # パーサーテスト
+├── docs/
+│   ├── design.md                # 設計ドキュメント
+│   └── development-guide.md     # 開発ガイド（このファイル）
+└── dist/
+    └── extension.js             # コンパイル済みファイル
 ```
 
 ---
@@ -95,6 +105,7 @@ nokto-kalkulo/
   "displayName": "NoktoKalkulo",
   "description": "小説原稿の文字数カウント",
   "version": "0.1.0",
+  "publisher": "YOUR-PUBLISHER-ID",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -120,6 +131,11 @@ nokto-kalkulo/
           "default": true,
           "description": "文字数カウント機能を有効にする"
         },
+        "nokto.wordCount.minWords": {
+          "type": "number",
+          "default": 0,
+          "description": "最小文字数"
+        },
         "nokto.wordCount.targetWords": {
           "type": "number",
           "default": 5000,
@@ -129,171 +145,191 @@ nokto-kalkulo/
           "type": "boolean",
           "default": true,
           "description": "ステータスバーに表示"
+        },
+        "nokto.wordCount.showBackgroundColor": {
+          "type": "boolean",
+          "default": false,
+          "description": "ステータスバー背景色を表示"
         }
       }
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "node ./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
+    "package": "node ./esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "lint": "eslint src",
+    "test": "vscode-test"
   }
 }
 ```
+
+### スクリプトの説明
+
+- `compile` - esbuildでTypeScriptをコンパイル
+- `watch` - ファイル変更を監視して自動コンパイル
+- `package` - 本番用にバンドル（最小化）
+- `lint` - ESLintでコードチェック
+- `test` - テストを実行
 
 ---
 
 ## 開発手順
 
-### Phase 1: パーサー実装（1-2時間）
+### Phase 1: パーサー実装（完了）
 
-1. `.vscode/manuscriptParser.ts` を `src/` へコピー
-2. ユニットテストを作成（`test/suite/parser.test.ts`）
-3. テストを実行して動作確認
+✅ `.vscode/manuscriptParser.ts` を `src/` へ作成
+✅ ユニットテストを作成（`test/suite/parser.test.ts`）
+✅ 文字要素のみをカウントするロジックを実装
 
 ```bash
 # テスト実行
 npm test
 ```
 
-### Phase 2: コントローラー実装（1-2時間）
+### Phase 2: コントローラー実装（完了）
 
-1. `src/wordCountController.ts` を作成
-2. ドキュメント変更の監視を実装
-3. パーサーと連携
+✅ `src/wordCountController.ts` を作成
+✅ ドキュメント変更の監視を実装
+✅ パーサーと連携
+✅ ディレクトリ合計文字数の計算機能を実装
+✅ `.nokto.json` 設定ファイルの読み込み機能を実装
 
 ```typescript
-// wordCountController.ts の骨格
-import * as vscode from 'vscode';
-import { ManuscriptParser } from './manuscriptParser';
-
+// wordCountController.ts の主要機能
 export class WordCountController {
   private parser: ManuscriptParser;
+  private statusBar: StatusBarManager;
   private disposable: vscode.Disposable;
 
   constructor() {
     this.parser = new ManuscriptParser();
+    this.statusBar = new StatusBarManager();
     
-    // ドキュメント変更を監視
-    const subscriptions: vscode.Disposable[] = [];
+    // イベントリスナーを登録
+    vscode.window.onDidChangeActiveTextEditor(...);
+    vscode.workspace.onDidChangeTextDocument(...);
+    vscode.workspace.onDidChangeConfiguration(...);
     
-    vscode.window.onDidChangeActiveTextEditor(
-      this.onDidChangeActiveTextEditor,
-      this,
-      subscriptions
-    );
-    
-    vscode.workspace.onDidChangeTextDocument(
-      this.onDidChangeTextDocument,
-      this,
-      subscriptions
-    );
-    
-    this.disposable = vscode.Disposable.from(...subscriptions);
     this.updateWordCount();
   }
 
-  private onDidChangeActiveTextEditor(editor?: vscode.TextEditor) {
-    this.updateWordCount();
+  async updateWordCount(): Promise<void> {
+    // 現在のファイルの文字数をカウント
+    // ディレクトリ合計を計算
+    // ステータスバーに表示
   }
 
-  private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent) {
-    if (this.isManuscriptFile(e.document)) {
-      this.updateWordCount();
-    }
+  private async countFilesInDirectory(directoryUri: vscode.Uri): Promise<number> {
+    // ディレクトリ配下の全.mdファイルの合計文字数を計算
   }
 
-  private isManuscriptFile(document: vscode.TextDocument): boolean {
-    // Markdownファイルが対象
-    return document.languageId === 'markdown';
-  }
-
-  private updateWordCount() {
-    const editor = vscode.window.activeTextEditor;
-    if (!editor || !this.isManuscriptFile(editor.document)) {
-      return;
-    }
-
-    const content = editor.document.getText();
-    const count = this.parser.countWords(content);
-    
-    // ステータスバーに表示（Phase 3で実装）
-    console.log(`文字数: ${count}字`);
-  }
-
-  dispose() {
-    this.disposable.dispose();
+  private async getConfiguration(fileUri?: vscode.Uri) {
+    // VS Code設定と.nokto.json設定を統合
   }
 }
 ```
 
-### Phase 3: ステータスバー実装（30分）
+### Phase 3: ステータスバー実装（完了）
 
-1. `src/statusBarManager.ts` を作成
-2. コントローラーと連携
+✅ `src/statusBarManager.ts` を作成
+✅ コントローラーと連携
+✅ 背景色表示機能を実装
 
 ```typescript
-// statusBarManager.ts の骨格
-import * as vscode from 'vscode';
-
+// statusBarManager.ts の主要機能
 export class StatusBarManager {
   private statusBarItem: vscode.StatusBarItem;
 
-  constructor() {
-    this.statusBarItem = vscode.window.createStatusBarItem(
-      vscode.StatusBarAlignment.Left,
-      100
-    );
-  }
-
-  update(count: number, target?: number) {
-    if (target) {
-      this.statusBarItem.text = `📝 ${count.toLocaleString()}字 / 目標: ${target.toLocaleString()}字`;
-    } else {
-      this.statusBarItem.text = `📝 ${count.toLocaleString()}字`;
-    }
-    
+  update(
+    currentCount: number, 
+    draftTotal: number, 
+    minWords?: number, 
+    target?: number, 
+    showBackgroundColor: boolean = false
+  ): void {
+    // 表示テキストを構築
+    // 背景色を設定
     this.statusBarItem.show();
-  }
-
-  hide() {
-    this.statusBarItem.hide();
-  }
-
-  dispose() {
-    this.statusBarItem.dispose();
   }
 }
 ```
 
-### Phase 4: 統合（30分）
+### Phase 4: 統合（完了）
 
-`src/extension.ts` で全体を統合：
+✅ `src/extension.ts` で全体を統合
+✅ コマンド登録
+✅ デバッグコマンド追加
 
 ```typescript
 import * as vscode from 'vscode';
 import { WordCountController } from './wordCountController';
 
-let controller: WordCountController;
+let controller: WordCountController | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Nocturne Word Count が起動しました');
+  console.log('NoktoKalkulo が起動しました');
 
   controller = new WordCountController();
   context.subscriptions.push(controller);
 
-  // コマンド登録
-  const disposable = vscode.commands.registerCommand(
-    'nocturne.countWords',
+  // コマンド登録: 文字数カウント
+  const countCommand = vscode.commands.registerCommand(
+    'nokto.countWords',
     () => {
-      vscode.window.showInformationMessage('文字数をカウントしています...');
+      if (controller) {
+        controller.updateWordCount();
+        vscode.window.showInformationMessage('文字数をカウントしました');
+      }
     }
   );
+  context.subscriptions.push(countCommand);
 
-  context.subscriptions.push(disposable);
+  // デバッグコマンド
+  const debugCommand = vscode.commands.registerCommand(
+    'nokto.debugCount',
+    () => {
+      if (controller) {
+        controller.debugCount();
+      }
+    }
+  );
+  context.subscriptions.push(debugCommand);
 }
 
 export function deactivate() {
   if (controller) {
     controller.dispose();
+    controller = undefined;
   }
 }
 ```
+
+## 実装済み機能
+
+### ✅ コア機能
+
+- [x] Markdown原稿の文字数カウント
+- [x] 文字要素のみをカウント（ひらがな、カタカナ、漢字、英数字）
+- [x] Markdown要素の除外（見出し、リスト、コードブロック等）
+- [x] ステータスバーへのリアルタイム表示
+- [x] ディレクトリ合計文字数の計算
+- [x] 最小文字数・目標文字数の設定
+- [x] 背景色表示機能
+- [x] ディレクトリ固有の設定ファイル（`.nokto.json`）
+
+### 📋 今後の拡張候補
+
+- [ ] プロットファイルからの目標文字数自動抽出
+- [ ] リアルタイム文字数グラフ
+- [ ] 執筆速度の計測
+- [ ] セクションごとの文字数内訳
+- [ ] 執筆履歴の記録
+- [ ] カスタマイズ可能なカウント規則
 
 ---
 
@@ -370,14 +406,40 @@ code --install-extension nocturne-word-count-0.1.0.vsix
 
 ---
 
-## 次のステップ
+## 開発ワークフロー
 
-- [ ] Phase 1: パーサー実装・テスト
-- [ ] Phase 2: コントローラー実装
-- [ ] Phase 3: ステータスバー実装
-- [ ] Phase 4: 統合・デバッグ
-- [ ] パッケージング・インストール
-- [ ] 実際の原稿で動作確認
+### 日常的な開発作業
+
+```bash
+# 依存関係のインストール（初回のみ）
+npm install
+
+# 開発モード（監視モード）で起動
+npm run watch
+
+# F5キーでデバッグ実行
+# -> 新しいVS Codeウィンドウで拡張機能をテスト
+```
+
+### テストの実行
+
+```bash
+# すべてのテストを実行
+npm test
+
+# リントチェック
+npm run lint
+```
+
+### ビルド
+
+```bash
+# 開発用ビルド
+npm run compile
+
+# 本番用ビルド（最小化）
+npm run package
+```
 
 ---
 

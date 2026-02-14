@@ -1,211 +1,183 @@
 # NoktoKalkulo
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/jgishiko/nokto-kalkulo)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+Markdown形式の小説原稿向け文字数カウント拡張機能です。
 
-小説原稿用の文字数カウントVS Code拡張機能
-
-Markdown形式の小説原稿用文字数カウンターです。
-
-## ✨ 機能
-
-- 📝 **自動文字数カウント** - Markdown原稿を開くと自動でカウント
-- 📊 **リアルタイム表示** - ステータスバーに現在の文字数を表示
-- 📁 **ディレクトリ合計表示** - 同じディレクトリ配下（サブディレクトリ含む）の全ファイルの合計文字数を表示
-- 🎯 **目標達成度表示** - 目標文字数との比較をパーセンテージで表示
-- 💬 **セリフと地の文の分離** - かぎ括弧（「」『』）内のセリフと地の文を自動判別してカウント
-- 📈 **詳細情報表示** - ステータスバーをクリックすると、セリフと地の文の文字数と割合（百分率）を出力パネルに表示
-- 🎨 **ステータスバー背景色** - 最小文字数・目標文字数に基づいて背景色を変更し、進捗を視覚的に把握（オプション）
-- ✍️ **柔軟なカウント規則**
-  - 文字要素のみカウント：
-    - ひらがな（\u3040-\u309F）
-    - カタカナ（\u30A0-\u30FF）
-    - 漢字（\u4E00-\u9FFF）
-    - アルファベット（全角・半角）
-    - 数字（全角・半角）
-  - 記号、句読点、空白は除外
-  - Markdownの見出し、リスト記号、コードブロック、HTMLコメント等は除外
-  - 全角半角を問わず1文字としてカウント
-
-## 🚀 使い方
-
-### 基本的な使い方
-
-1. Markdownファイル（`.md` ファイル）を開く
-2. ステータスバー左側に文字数が自動表示されます
-
-#### 表示形式
-
-**目標文字数を設定している場合**：
-
-```text
-1,234字 | 69%
-```
-
-- `1,234字` = 現在開いているファイルの文字数
-- `69%` = 目標達成率（ディレクトリ合計文字数 ÷ 目標文字数）
-
-**目標文字数を設定していない場合**：
-
-```text
-1,234字
-```
-
-### 詳細情報の表示
-
-ステータスバーの文字数表示をクリックすると、**出力パネル（OUTPUT）** に詳細な文字数情報が表示されます：
-
-```text
-NoktoKalkulo
-
-=== 現在のファイル ===
-
-総文字数: 1,234字
-
-セリフ: 456字 (37%)
-地の文: 778字 (63%)
-
-----------------------------------------
-
-=== ディレクトリ合計 ===
-
-総文字数: 5,678字 / 8,000字
-
-進捗: 71%
-残り: 2,322字
-
-セリフ: 2,000字 (35%)
-地の文: 3,678字 (65%)
-```
-
-- **セリフ**: かぎ括弧「」と二重かぎ括弧『』で囲まれた部分の文字数
-- **地の文**: セリフ以外の本文の文字数
-- **進捗**: 目標文字数に対する達成率（目標文字数を設定している場合のみ表示）
-- **残り**: 目標達成までの残り文字数（目標文字数を設定している場合のみ表示）
-
-### コマンド実行
-
-`Ctrl+Shift+P` でコマンドパレットを開き、以下のコマンドを実行できます：
-
-- `NoktoKalkulo: Count Manuscript Words` - 文字数を手動でカウント
-- `NoktoKalkulo: Show Detailed Word Count` - 詳細な文字数情報を表示（ステータスバークリックと同じ）
-
-## ⚙️ 設定
-
-### 全作品共通の設定
-
-VS Code の設定（`settings.json`）でカスタマイズできます：
-
-```json
-{
-  // 目標文字数（デフォルト: 0、0の場合は進捗率非表示）
-  "nokto.wordCount.targetWords": 8000,
-  
-  // ステータスバー表示の有効化（デフォルト: true）
-  "nokto.wordCount.showInStatusBar": true
-}
-```
-
-### 作品ごとの設定
-
-原稿ファイルがあるディレクトリに `.nokto.json` ファイルを配置することで、その作品専用の設定を指定できます。
-
-**例**: 目標文字数を設定
-
-```json
-{
-  "targetWords": 12000
-}
-```
-
-**使用例**:
-
-- 作品ごとに異なる目標文字数を設定する
-- 短編は目標文字数なし（0）、長編は目標文字数を設定する
-
-設定ファイルがある場合はその設定が優先され、ない場合は全作品共通の設定が使用されます。
-
-#### 設定可能な項目
-
-| 項目            | 型     | 説明                     |
-| --------------- | ------ | ------------------------ |
-| `targetWords`   | number | その作品の目標文字数     |
-
-### 設定項目の詳細
-
-| 設定項目                          | 型      | デフォルト | 説明                                |
-| --------------------------------- | ------- | ---------- | ----------------------------------- |
-| `nokto.wordCount.targetWords`     | number  | `0`        | 目標文字数（0の場合は進捗率非表示） |
-| `nokto.wordCount.showInStatusBar` | boolean | `true`     | ステータスバー表示の有効/無効       |
-
-## 📦 インストール
-
-### VS Code マーケットプレイスから（公開予定）
-
-1. VS Code の拡張機能ビューを開く（`Ctrl+Shift+X`）
-2. "NoktoKalkulo" を検索
-3. "インストール" をクリック
-
-### 手動インストール
-
-```bash
-# リポジトリをクローン
-git clone https://github.com/jgishiko/nokto-kalkulo.git
-cd nokto-kalkulo
-
-# 依存関係をインストール
-npm install
-
-# パッケージをビルド
-npm run package
-
-# VSIXファイルをインストール
-code --install-extension nokto-kalkulo-*.vsix
-```
-
-## 🔧 開発
-
-### 開発環境のセットアップ
-
-```bash
-# 依存関係のインストール
-npm install
-
-# コンパイル
-npm run compile
-
-# 監視モード（自動再コンパイル）
-npm run watch
-```
-
-### デバッグ実行
-
-1. VS Code でこのフォルダを開く
-2. `F5` キーを押して拡張機能開発ホストを起動
-3. 新しいウィンドウでMarkdownファイルを開いてテスト
-
-### テスト実行
-
-```bash
-npm run test
-```
-
-## 🤝 コントリビューション
-
-バグ報告や機能提案は [Issues](https://github.com/jgishiko/nokto-kalkulo/issues) へお願いします。
-
-プルリクエストも歓迎します！
-
-## 📝 ライセンス
-
-MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照してください。
-
-## 🔗 関連リンク
-
-- [開発ガイド](docs/development-guide.md)
-- [設計ドキュメント](docs/design.md)
-- [テストケース](test/test-cases.md)
+記号やMarkdown記法を除外し、本文の文字のみをカウントします。
+執筆量を正確に把握することを目的としています。
 
 ---
 
-**NoktoKalkulo** - 小説執筆をもっと快適に 📚✨
+## 機能
+
+- Markdownファイルを自動で文字数カウント
+- ステータスバーに現在の文字数を表示
+- ディレクトリ単位での合計文字数計算（サブディレクトリ含む）
+- 目標文字数に対する進捗表示
+- セリフ（「」『』）と地の文の分離カウント
+- 詳細情報を出力パネルに表示
+
+---
+
+## カウント規則
+
+以下の文字をカウント対象とします：
+
+- ひらがな
+- カタカナ
+- 漢字
+- アルファベット（全角・半角）
+- 数字（全角・半角）
+
+以下はカウント対象外です：
+
+- 句読点
+- 記号
+- 空白
+- Markdown構文（見出し、リスト記号など）
+- コードブロック
+- HTMLコメント
+
+全角・半角はともに1文字として扱います。
+
+---
+
+## 表示仕様
+
+### ステータスバー
+
+目標文字数を設定している場合：
+
+    1,234字 | 69%
+
+目標文字数を設定していない場合：
+
+    1,234字
+
+ステータスバーをクリックすると出力パネルに詳細情報を表示します。
+
+---
+
+### 出力パネル
+
+    NoktoKalkulo
+
+    === 現在のファイル ===
+
+    総文字数: 1,234字
+
+    セリフ: 456字 (37%)
+    地の文: 778字 (63%)
+
+    ----------------------------------------
+
+    === ディレクトリ合計 ===
+
+    総文字数: 5,678字 / 8,000字
+
+    進捗: 71%
+    残り: 2,322字
+
+    セリフ: 2,000字 (35%)
+    地の文: 3,678字 (65%)
+
+- セリフ：かぎ括弧「」および『』内の文字数
+- 地の文：セリフ以外の本文文字数
+- 進捗・残り：目標文字数を設定している場合のみ表示
+
+---
+
+## 設定
+
+### VS Code 設定（settings.json）
+
+    {
+      "nokto.wordCount.targetWords": 8000,
+      "nokto.wordCount.showInStatusBar": true
+    }
+
+| 設定項目 | 型 | デフォルト | 説明 |
+| -------- | -- | ---------- | ---- |
+| nokto.wordCount.targetWords | number | 0 | 目標文字数（0の場合は進捗非表示） |
+| nokto.wordCount.showInStatusBar | boolean | true | ステータスバー表示の有効/無効 |
+
+---
+
+### 作品ごとの設定
+
+原稿ディレクトリに `.nokto.json` を配置することで、
+その作品専用の目標文字数を設定できます。
+
+例：
+
+    {
+      "targetWords": 12000
+    }
+
+設定ファイルが存在する場合はそちらが優先されます。
+
+---
+
+## コマンド
+
+- NoktoKalkulo: Count Manuscript Words
+- NoktoKalkulo: Show Detailed Word Count
+
+---
+
+## ライセンス
+
+MIT License
+
+---
+
+## English
+
+NoktoKalkulo is a word count extension for fiction written in Markdown.
+
+It counts only textual characters in the manuscript body,
+excluding symbols and Markdown syntax, in order to measure actual writing volume.
+
+### Features
+
+- Automatic word counting for Markdown files
+- Current file count displayed in the status bar
+- Directory-wide total word count (including subdirectories)
+- Progress display against a target word count
+- Separate counting of dialogue ("「」" and "『』") and narrative text
+- Detailed breakdown shown in the Output panel
+
+### Counting Rules
+
+The following characters are counted:
+
+- Hiragana
+- Katakana
+- Kanji
+- Alphabet characters (full-width and half-width)
+- Numbers (full-width and half-width)
+
+The following are excluded:
+
+- Punctuation
+- Symbols
+- Whitespace
+- Markdown syntax (headings, list markers, etc.)
+- Code blocks
+- HTML comments
+
+Full-width and half-width characters are both counted as one character.
+
+### Configuration
+
+Global settings (VS Code `settings.json`):
+
+    {
+      "nokto.wordCount.targetWords": 8000,
+      "nokto.wordCount.showInStatusBar": true
+    }
+
+Per-project configuration via `.nokto.json`:
+
+    {
+      "targetWords": 12000
+    }

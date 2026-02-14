@@ -130,30 +130,15 @@ nokto-kalkulo/
     "configuration": {
       "title": "NoktoKalkulo",
       "properties": {
-        "nokto.wordCount.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "文字数カウント機能を有効にする"
-        },
-        "nokto.wordCount.minWords": {
-          "type": "number",
-          "default": 0,
-          "description": "最小文字数"
-        },
         "nokto.wordCount.targetWords": {
           "type": "number",
-          "default": 5000,
-          "description": "目標文字数"
+          "default": 0,
+          "description": "目標文字数（0の場合は非表示）"
         },
         "nokto.wordCount.showInStatusBar": {
           "type": "boolean",
           "default": true,
           "description": "ステータスバーに表示"
-        },
-        "nokto.wordCount.showBackgroundColor": {
-          "type": "boolean",
-          "default": false,
-          "description": "ステータスバー背景色を表示"
         }
       }
     }
@@ -254,7 +239,6 @@ export class WordCountController {
 
 ✅ `src/statusBarManager.ts` を作成
 ✅ コントローラーと連携
-✅ 背景色表示機能を実装
 ✅ クリック時の詳細情報表示への連携
 
 ```typescript
@@ -265,12 +249,9 @@ export class StatusBarManager {
   update(
     currentCount: number, 
     draftTotal: number, 
-    minWords?: number, 
-    target?: number, 
-    showBackgroundColor: boolean = false
+    target?: number
   ): void {
     // 表示テキストを構築
-    // 背景色を設定
     this.statusBarItem.show();
   }
 }
@@ -346,8 +327,7 @@ export function deactivate() {
 - [x] Markdown要素の除外（見出し、リスト、コードブロック等）
 - [x] ステータスバーへのリアルタイム表示
 - [x] ディレクトリ合計文字数の計算
-- [x] 最小文字数・目標文字数の設定
-- [x] 背景色表示機能
+- [x] 目標文字数の設定
 - [x] ディレクトリ固有の設定ファイル（`.nokto.json`）
 - [x] セリフと地の文の分離カウント
 - [x] 詳細情報表示（セリフと地の文の文字数と割合）

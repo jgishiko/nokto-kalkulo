@@ -86,6 +86,18 @@ Markdown形式の小説原稿向け文字数カウント拡張機能です。
 
 ---
 
+## Example
+
+### Status Bar
+
+![Status Bar](docs/images/status-bar.png)
+
+### Output Panel
+
+![Output Panel](docs/images/output-panel.png)
+
+---
+
 ## 設定
 
 ### VS Code 設定（settings.json）

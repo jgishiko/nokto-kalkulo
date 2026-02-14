@@ -12,32 +12,32 @@ suite('ManuscriptParser Test Suite', () => {
     assert.strictEqual(parser.countWords(''), 0);
   });
 
-  test('通常の文章', () => {
+  test('通常の文章（記号は除外）', () => {
     const text = '吾輩は猫である。名前はまだ無い。';
     const count = parser.countWords(text);
-    // 句点を含めて17文字
-    assert.strictEqual(count, 17);
+    // ひらがな・漢字のみカウント、句点は除外：吾輩は猫である名前はまだ無い = 15文字
+    assert.strictEqual(count, 15);
   });
 
-  test('会話文は1文字', () => {
+  test('会話文の記号は除外、内容はカウント', () => {
     const text = '太郎は「こんにちは」と言った。';
     const count = parser.countWords(text);
-    // 太郎は + D + と言った。 = 3 + 1 + 5 = 9文字
-    assert.strictEqual(count, 9);
+    // 太郎はこんにちはと言った = 11文字（「」。は除外）
+    assert.strictEqual(count, 11);
   });
 
-  test('三点リーダーは2文字', () => {
+  test('三点リーダーは除外', () => {
     const text = '彼は黙って考えた…';
     const count = parser.countWords(text);
-    // 彼は黙って考えた + EE = 8 + 2 = 10文字
-    assert.strictEqual(count, 10);
+    // 彼は黙って考えた = 8文字（…は除外）
+    assert.strictEqual(count, 8);
   });
 
-  test('ダッシュは1文字', () => {
+  test('ダッシュは除外', () => {
     const text = '彼は―そう、彼は決意した。';
     const count = parser.countWords(text);
-    // そのままカウント
-    assert.strictEqual(count, 13);
+    // 彼はそう彼は決意した = 10文字（―、。は除外）
+    assert.strictEqual(count, 10);
   });
 
   test('改行と空白は除外', () => {
@@ -45,57 +45,92 @@ suite('ManuscriptParser Test Suite', () => {
 
 名前はまだ無い。`;
     const count = parser.countWords(text);
-    // 改行と空白を除いて17文字
-    assert.strictEqual(count, 17);
+    // 吾輩は猫である名前はまだ無い = 15文字
+    assert.strictEqual(count, 15);
+  });
+
+  test('アルファベット（半角）はカウント', () => {
+    const text = 'これはTestです。';
+    const count = parser.countWords(text);
+    // これはTestです = 8文字
+    assert.strictEqual(count, 8);
+  });
+
+  test('アルファベット（全角）はカウント', () => {
+    const text = 'これはＴｅｓｔです。';
+    const count = parser.countWords(text);
+    // これはＬｅｓｔです = 8文字
+    assert.strictEqual(count, 8);
+  });
+
+  test('数字（半角）はカウント', () => {
+    const text = '第123章です。';
+    const count = parser.countWords(text);
+    // 第123章です = 6文字
+    assert.strictEqual(count, 6);
+  });
+
+  test('数字（全角）はカウント', () => {
+    const text = '第１２３章です。';
+    const count = parser.countWords(text);
+    // 第１２３章です = 6文字
+    assert.strictEqual(count, 6);
   });
 
   test('Markdownの見出しは除外', () => {
     const text = '## 第一章\n\n物語は始まった。';
     const count = parser.countWords(text);
-    // "物語は始まった。" = 8文字（見出し行全体を除外）
-    assert.strictEqual(count, 8);
+    // "物語は始まった" = 7文字（見出し行全体を除外、。も除外）
+    assert.strictEqual(count, 7);
   });
 
   test('Markdownの強調は内容のみカウント', () => {
     const text = '彼は**強く**決意した。';
     const count = parser.countWords(text);
-    // "彼は強く決意した。" = 9文字
-    assert.strictEqual(count, 9);
+    // "彼は強く決意した" = 8文字
+    assert.strictEqual(count, 8);
   });
 
   test('HTMLコメントは除外', () => {
     const text = '物語が<!-- TODO: あとで書く -->始まった。';
     const count = parser.countWords(text);
-    // "物語が始まった。" = 7文字
-    assert.strictEqual(count, 7);
+    // "物語が始まった" = 6文字
+    assert.strictEqual(count, 6);
   });
 
   test('HTMLタグは除外', () => {
     const text = '彼は<strong>強く</strong>決意した。';
     const count = parser.countWords(text);
-    // "彼は強く決意した。" = 9文字
-    assert.strictEqual(count, 9);
+    // "彼は強く決意した" = 8文字
+    assert.strictEqual(count, 8);
   });
 
   test('自己閉じHTMLタグは除外', () => {
     const text = '物語が<br />始まった。';
     const count = parser.countWords(text);
-    // "物語が始まった。" = 8文字
-    assert.strictEqual(count, 8);
+    // "物語が始まった" = 7文字
+    assert.strictEqual(count, 7);
   });
 
   test('Markdown引用行は除外', () => {
     const text = '> これは引用です。\n\n通常の文章です。';
     const count = parser.countWords(text);
-    // "通常の文章です。" = 8文字
-    assert.strictEqual(count, 8);
+    // "通常の文章です" = 7文字
+    assert.strictEqual(count, 7);
   });
 
   test('ネストした引用行も除外', () => {
     const text = '> 引用レベル1\n>> 引用レベル2\n\n本文です。';
     const count = parser.countWords(text);
-    // "本文です。" = 5文字
-    assert.strictEqual(count, 5);
+    // "本文です" = 4文字
+    assert.strictEqual(count, 4);
+  });
+
+  test('カタカナもカウント', () => {
+    const text = 'これはテストです。';
+    const count = parser.countWords(text);
+    // これはテストです = 8文字
+    assert.strictEqual(count, 8);
   });
 
   test('複合的なテスト', () => {
@@ -109,8 +144,8 @@ suite('ManuscriptParser Test Suite', () => {
 物語は―こうして始まったのだ。`;
 
     const count = parser.countWords(text);
-    // 複雑なので、実際の値を確認する必要がある
-    // ここでは基本的な動作確認として
-    assert.ok(count > 0);
+    // 第一章 + 太郎はやあ元気かいと声をかけた + 彼女は少し困った顔をして答えた + ええまあね + 物語はこうして始まったのだ
+    // = 3 + 15 + 14 + 4 + 13 = 49文字
+    assert.strictEqual(count, 49);
   });
 });

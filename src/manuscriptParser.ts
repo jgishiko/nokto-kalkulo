@@ -2,12 +2,14 @@
  * ManuscriptParser - ノクターンノベルズ原稿の文字数カウント
  * 
  * カウント規則:
- * - 会話文（「」内）: 閉じカッコまでで1文字
- * - 三点リーダー（…）: 2文字
- * - ダッシュ（―）: 1文字
- * - 改行・空白: 除外
- * - 引用行（> で始まる行）: 除外
- * - HTMLタグ: 除外
+ * - 文字要素のみカウント：
+ *   - ひらがな
+ *   - カタカナ
+ *   - 漢字
+ *   - アルファベット（全角・半角）
+ *   - 数字（全角・半角）
+ * - 記号、句読点、空白は除外
+ * - 全角半角を問わず1文字としてカウント
  */
 export class ManuscriptParser {
   /**
@@ -23,17 +25,19 @@ export class ManuscriptParser {
     // 1. Markdownのメタデータ、コメント、コードブロックを除外
     let text = this.removeMarkdownElements(content);
 
-    // 2. 会話文を1文字に置き換え
-    text = this.normalizeDialogue(text);
+    // 2. 文字要素のみを抽出してカウント
+    return this.countCharacters(text);
+  }
 
-    // 3. 特殊文字を正規化
-    text = this.normalizeSpecialCharacters(text);
-
-    // 4. 改行と空白を除外
-    text = text.replace(/\s+/g, '');
-
-    // 5. 文字数をカウント
-    return text.length;
+  /**
+   * 文字要素のみをカウント
+   * ひらがな、カタカナ、漢字、アルファベット、数字のみ
+   */
+  private countCharacters(text: string): number {
+    // 文字要素のみにマッチする正規表現
+    const characterRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]/g;
+    const matches = text.match(characterRegex);
+    return matches ? matches.length : 0;
   }
 
   /**
@@ -75,27 +79,6 @@ export class ManuscriptParser {
   }
 
   /**
-   * 会話文を正規化（「」内を1文字に）
-   */
-  private normalizeDialogue(text: string): string {
-    // 「...」を 'D' (Dialogue) 1文字に置き換え
-    return text.replace(/「[^」]*」/g, 'D');
-  }
-
-  /**
-   * 特殊文字を正規化
-   */
-  private normalizeSpecialCharacters(text: string): string {
-    // 三点リーダー（…）→ 2文字（'EE'で表現）
-    text = text.replace(/…/g, 'EE');
-
-    // ダッシュ（―）→ 1文字（そのまま）
-    // すでに1文字なので変換不要
-
-    return text;
-  }
-
-  /**
    * デバッグ用：各ステップの結果を出力
    */
   debug(content: string): void {
@@ -106,16 +89,15 @@ export class ManuscriptParser {
     const step1 = this.removeMarkdownElements(content);
     console.log('2. After removeMarkdown:', step1.substring(0, 100));
 
-    const step2 = this.normalizeDialogue(step1);
-    console.log('3. After normalizeDialogue:', step2.substring(0, 100));
-
-    const step3 = this.normalizeSpecialCharacters(step2);
-    console.log('4. After normalizeSpecial:', step3.substring(0, 100));
-
-    const step4 = step3.replace(/\s+/g, '');
-    console.log('5. After removeWhitespace:', step4.substring(0, 100));
-
-    console.log('Final count:', step4.length);
+    const count = this.countCharacters(step1);
+    console.log('3. Character count:', count);
+    
+    // 抽出された文字の一部を表示
+    const characterRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]/g;
+    const chars = step1.match(characterRegex) || [];
+    console.log('4. Extracted characters (first 50):', chars.slice(0, 50).join(''));
+    
+    console.log('Final count:', count);
     console.log('==============================');
     /* eslint-enable no-undef */
   }

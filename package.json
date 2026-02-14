@@ -52,8 +52,8 @@
       "properties": {
         "nokto.wordCount.targetWords": {
           "type": "number",
-          "default": 5000,
-          "description": "目標文字数"
+          "default": 0,
+          "description": "目標文字数（0の場合は非表示）"
         },
         "nokto.wordCount.showInStatusBar": {
           "type": "boolean",

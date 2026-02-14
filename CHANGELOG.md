@@ -10,20 +10,27 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
   - かぎ括弧「」と二重かぎ括弧『』で囲まれたセリフを自動判別
   - セリフと地の文を分離して文字数をカウント
   - ステータスバークリックで詳細情報を出力パネルに表示
+  - ファイル切り替え時に詳細情報を自動更新
   - 詳細情報には以下を含む：
     - 現在のファイルとディレクトリ全体の総文字数
     - セリフの文字数と全体に占める割合（百分率）
     - 地の文の文字数と全体に占める割合（百分率）
+    - 目標文字数、進捗率、残り文字数（目標文字数設定時のみ）
   - 新しいコマンド追加：`NoktoKalkulo: Show Detailed Word Count`
 
 ### Changed
 
 - ✨ **ステータスバー表示形式の改善**（2026-02-14）
-  - 最小文字数をステータスバーから削除（背景色制御のみに使用）
-  - より読みやすい表示形式に変更：`📝 現在 | 合計 / 目標 (達成率)`
-  - 例：`📝 1,234字 | 3,456字 / 5,000字 (69%)`
-  - 単一ファイルの場合は現在のファイルのみ表示：`📝 1,234字 / 5,000字 (25%)`
+  - アイコンを削除しシンプルな表示に変更
+  - 新しい表示形式：`1,234字` または `1,234字 | 75%`（目標文字数設定時）
   - ステータスバークリックで詳細情報を表示するように変更
+
+- ✨ **設定項目のシンプル化**（2026-02-14）
+  - `nokto.wordCount.enabled` を削除（常に有効）
+  - `nokto.wordCount.minWords` を削除（不要な複雑さを削減）
+  - `nokto.wordCount.showBackgroundColor` を削除（装飾要素を削減）
+  - `nokto.wordCount.targetWords` のデフォルトを5000から0に変更（0の場合は進捗率非表示）
+  - 残った設定：`targetWords`、`showInStatusBar` のみ
 
 ### Planned
 
@@ -63,21 +70,13 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
   - 同じディレクトリ配下（サブディレクトリ含む）の全 `.md` ファイルの合計文字数を表示
 
 - ✅ **設定項目**
-  - `nokto.wordCount.enabled` - 機能の有効/無効
-  - `nokto.wordCount.minWords` - 最小文字数（0より大きい値で表示）
-  - `nokto.wordCount.targetWords` - 目標文字数
+  - `nokto.wordCount.targetWords` - 目標文字数（デフォルト: 0）
   - `nokto.wordCount.showInStatusBar` - ステータスバー表示の切替
-  - `nokto.wordCount.showBackgroundColor` - ステータスバー背景色表示の切替
 
 - ✅ **ディレクトリ固有設定**
   - `.nokto.json` 設定ファイルのサポート
   - 作品ごとに異なる設定を指定可能
   - VS Code設定よりも優先される
-
-- ✅ **背景色表示機能**
-  - 合計文字数が最小文字数以下の場合：赤色
-  - 合計文字数が目標文字数以上の場合：黄色
-  - その他の場合：デフォルト
 
 - ✅ **コマンド**
   - `NoktoKalkulo: Count Manuscript Words` - 手動カウント実行

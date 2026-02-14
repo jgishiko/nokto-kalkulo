@@ -107,7 +107,7 @@ export class WordCountController {
       targetWords: number;
       showInStatusBar: boolean;
     } = {
-      targetWords: config.get<number>('targetWords', 5000),
+      targetWords: config.get<number>('targetWords', 0),
       showInStatusBar: config.get<boolean>('showInStatusBar', true),
     };
 
@@ -289,14 +289,6 @@ export class WordCountController {
       ? Math.round((this.directoryResult.narration / this.directoryResult.total) * 100)
       : 0;
 
-    // 進捗と残り文字数
-    const targetStr = targetWords.toLocaleString('ja-JP');
-    const progressPercent = targetWords > 0 
-      ? Math.round((this.directoryResult.total / targetWords) * 100)
-      : 0;
-    const remaining = Math.max(0, targetWords - this.directoryResult.total);
-    const remainingStr = remaining.toLocaleString('ja-JP');
-
     // OutputChannelをクリアして情報を表示
     this.outputChannel.clear();
     this.outputChannel.appendLine('NoktoKalkulo');
@@ -312,10 +304,22 @@ export class WordCountController {
     this.outputChannel.appendLine('');
     this.outputChannel.appendLine('=== ディレクトリ合計 ===');
     this.outputChannel.appendLine('');
-    this.outputChannel.appendLine(`総文字数: ${dirTotal}字 / ${targetStr}字`);
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine(`進捗: ${progressPercent}%`);
-    this.outputChannel.appendLine(`残り: ${remainingStr}字`);
+    
+    // 目標文字数が設定されている場合のみ進捗情報を表示
+    if (targetWords > 0) {
+      const targetStr = targetWords.toLocaleString('ja-JP');
+      const progressPercent = Math.round((this.directoryResult.total / targetWords) * 100);
+      const remaining = Math.max(0, targetWords - this.directoryResult.total);
+      const remainingStr = remaining.toLocaleString('ja-JP');
+      
+      this.outputChannel.appendLine(`総文字数: ${dirTotal}字 / ${targetStr}字`);
+      this.outputChannel.appendLine('');
+      this.outputChannel.appendLine(`進捗: ${progressPercent}%`);
+      this.outputChannel.appendLine(`残り: ${remainingStr}字`);
+    } else {
+      this.outputChannel.appendLine(`総文字数: ${dirTotal}字`);
+    }
+    
     this.outputChannel.appendLine('');
     this.outputChannel.appendLine(`セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)`);
     this.outputChannel.appendLine(`地の文: ${dirNarration}字 (${dirNarrationPercent}%)`);

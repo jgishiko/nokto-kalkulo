@@ -170,16 +170,19 @@ export class WordCountController {
 
     // 現在のファイルの文字数をカウント（詳細版）
     const content = editor.document.getText();
-    this.currentFileResult = this.parser.countWordsDetailed(content);
+    const currentFileResult = this.parser.countWordsDetailed(content);
 
     // 同じディレクトリの合計文字数を取得
     const directoryUri = vscode.Uri.joinPath(editor.document.uri, '..');
-    this.directoryResult = await this.countFilesInDirectoryDetailed(directoryUri);
+    const directoryResult = await this.countFilesInDirectoryDetailed(directoryUri);
+
+    this.currentFileResult = currentFileResult;
+    this.directoryResult = directoryResult;
 
     // ステータスバーに表示
     if (config.showInStatusBar) {
-      const currentCount = this.currentFileResult.total;
-      const directoryTotal = this.directoryResult.total;
+      const currentCount = currentFileResult.total;
+      const directoryTotal = directoryResult.total;
       this.statusBar.update(currentCount, directoryTotal, config.targetWords);
     } else {
       this.statusBar.hide();

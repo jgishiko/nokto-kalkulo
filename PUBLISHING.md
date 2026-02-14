@@ -11,29 +11,28 @@
 
 ### ⚠️ 要対応（公開前に必ず設定）
 
-- [ ] **package.json の YOUR-PUBLISHER-ID を置換**
-  - Visual Studio Marketplace で Publisher を作成
+- [x] **package.json の YOUR-PUBLISHER-ID を置換**
+  - Publisher ID: `j-g-ishiko` に設定済み
+  - Visual Studio Marketplace でPublisherを作成してください
   - <https://marketplace.visualstudio.com/manage>
-  - 作成した Publisher ID に置換
 
-- [ ] **package.json の YOUR-USERNAME を置換**
-  - GitHubのユーザー名に置換
-  - repositoryのURLを正しく設定
+- [x] **package.json の repository URL を確認**
+  - GitHubのリポジトリURL: `https://github.com/jgishiko/nokto-kalkulo.git`
+  - 正しく設定済み
 
-- [ ] **LICENSE ファイルの [Your Name] を置換**
-  - 実名またはハンドルネームに置換
+- [x] **アイコン画像**
+  - ファイル: `icon.png` が存在
+  - package.jsonに設定済み: `"icon": "icon.png"`
+  - ※サイズが128x128pxであることを確認してください
 
-- [ ] **アイコン画像を作成**
-  - サイズ: 128x128 px（推奨）
-  - フォーマット: PNG
-  - ファイル名: `icon.png`
-  - 配置: `tools/nokto-kalkulo/icon.png`
-  - package.jsonに追加: `"icon": "icon.png"`
+- [ ] **CHANGELOG.md の整理**
+  - [Unreleased] セクションを v0.1.0 に統合するか検討
+  - リリースノートの最終確認
 
-- [ ] **スクリーンショット/GIFを作成**
+- [ ] **スクリーンショット/GIFを作成**（推奨）
   - 実際の動作画面をキャプチャ
   - ステータスバー表示の様子
-  - 設定画面などを含める
+  - 詳細情報表示の様子
   - README.md に追加
 
 ## 🎨 推奨項目

@@ -14,6 +14,8 @@ export class WordCountController {
   private directoryResult: WordCountResult | null = null;
   // 出力チャネル
   private outputChannel: vscode.OutputChannel;
+  // 詳細情報の自動表示フラグ（一度表示したら以降は自動更新する）
+  private autoShowDetailedInfo: boolean = false;
 
   constructor() {
     this.parser = new ManuscriptParser();
@@ -53,25 +55,37 @@ export class WordCountController {
   /**
    * エディタ切り替え時のハンドラ
    */
-  private onDidChangeActiveTextEditor(): void {
-    this.updateWordCount();
+  private async onDidChangeActiveTextEditor(): Promise<void> {
+    await this.updateWordCount();
+    // 一度詳細情報を表示したら、以降は自動更新する
+    if (this.autoShowDetailedInfo && this.currentFileResult && this.directoryResult) {
+      await this.showDetailedCount(true);
+    }
   }
 
   /**
    * ドキュメント変更時のハンドラ
    */
-  private onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent): void {
+  private async onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent): Promise<void> {
     if (this.isManuscriptFile(e.document)) {
-      this.updateWordCount();
+      await this.updateWordCount();
+      // 一度詳細情報を表示したら、以降は自動更新する
+      if (this.autoShowDetailedInfo && this.currentFileResult && this.directoryResult) {
+        await this.showDetailedCount(true);
+      }
     }
   }
 
   /**
    * 設定変更時のハンドラ
    */
-  private onDidChangeConfiguration(e: vscode.ConfigurationChangeEvent): void {
+  private async onDidChangeConfiguration(e: vscode.ConfigurationChangeEvent): Promise<void> {
     if (e.affectsConfiguration('nokto.wordCount')) {
-      this.updateWordCount();
+      await this.updateWordCount();
+      // 一度詳細情報を表示したら、以降は自動更新する
+      if (this.autoShowDetailedInfo && this.currentFileResult && this.directoryResult) {
+        await this.showDetailedCount(true);
+      }
     }
   }
 
@@ -90,38 +104,20 @@ export class WordCountController {
   private async getConfiguration(fileUri?: vscode.Uri) {
     const config = vscode.workspace.getConfiguration('nokto.wordCount');
     const baseConfig: {
-      enabled: boolean;
-      minWords?: number;
       targetWords: number;
       showInStatusBar: boolean;
-      showBackgroundColor: boolean;
     } = {
-      enabled: config.get<boolean>('enabled', true),
-      minWords: undefined, // デフォルトは undefined（背景色制御のみに使用）
       targetWords: config.get<number>('targetWords', 5000),
       showInStatusBar: config.get<boolean>('showInStatusBar', true),
-      showBackgroundColor: config.get<boolean>('showBackgroundColor', false),
     };
 
     // ディレクトリ固有の設定を読み込む
     if (fileUri) {
       const directoryConfig = await this.loadDirectoryConfig(fileUri);
       if (directoryConfig) {
-        // enabled設定が.nokto.jsonにあれば優先
-        if (directoryConfig.enabled !== undefined) {
-          baseConfig.enabled = directoryConfig.enabled;
-        }
-        // minWords設定が.nokto.jsonにあれば設定（背景色制御に使用）
-        if (directoryConfig.minWords !== undefined) {
-          baseConfig.minWords = directoryConfig.minWords;
-        }
         // targetWords設定が.nokto.jsonにあれば優先
         if (directoryConfig.targetWords !== undefined) {
           baseConfig.targetWords = directoryConfig.targetWords;
-        }
-        // showBackgroundColor設定が.nokto.jsonにあれば優先
-        if (directoryConfig.showBackgroundColor !== undefined) {
-          baseConfig.showBackgroundColor = directoryConfig.showBackgroundColor;
         }
       }
     }
@@ -132,7 +128,7 @@ export class WordCountController {
   /**
    * ディレクトリ固有の設定ファイル（.nokto.json）を読み込む
    */
-  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ enabled?: boolean; minWords?: number; targetWords?: number; showBackgroundColor?: boolean } | null> {
+  private async loadDirectoryConfig(fileUri: vscode.Uri): Promise<{ targetWords?: number } | null> {
     try {
       const dirUri = vscode.Uri.joinPath(fileUri, '..');
       const configUri = vscode.Uri.joinPath(dirUri, '.nokto.json');
@@ -156,8 +152,8 @@ export class WordCountController {
     const editor = vscode.window.activeTextEditor;
     const config = await this.getConfiguration(editor?.document.uri);
 
-    // 機能が無効、またはエディタがない場合
-    if (!config.enabled || !editor) {
+    // エディタがない場合
+    if (!editor) {
       this.statusBar.hide();
       this.currentFileResult = null;
       this.directoryResult = null;
@@ -184,7 +180,7 @@ export class WordCountController {
     if (config.showInStatusBar) {
       const currentCount = this.currentFileResult.total;
       const directoryTotal = this.directoryResult.total;
-      this.statusBar.update(currentCount, directoryTotal, config.minWords, config.targetWords, config.showBackgroundColor);
+      this.statusBar.update(currentCount, directoryTotal, config.targetWords);
     } else {
       this.statusBar.hide();
     }
@@ -252,55 +248,80 @@ export class WordCountController {
 
   /**
    * 詳細な文字数情報をポップアップで表示
+   * @param autoUpdate 自動更新モードかどうか
    */
-  showDetailedCount(): void {
+  async showDetailedCount(autoUpdate: boolean = false): Promise<void> {
     if (!this.currentFileResult || !this.directoryResult) {
-      vscode.window.showWarningMessage('文字数情報がありません');
+      // 自動更新の場合はエラーメッセージを出さずに終了
+      if (!autoUpdate) {
+        vscode.window.showWarningMessage('文字数情報がありません');
+      }
       return;
     }
+
+    // フラグを立てて以降は自動更新する
+    this.autoShowDetailedInfo = true;
+
+    // 設定を取得
+    const editor = vscode.window.activeTextEditor;
+    const config = await this.getConfiguration(editor?.document.uri);
+    const targetWords = config.targetWords;
 
     // 現在のファイルの情報
     const fileTotal = this.currentFileResult.total.toLocaleString('ja-JP');
     const fileDialogue = this.currentFileResult.dialogue.toLocaleString('ja-JP');
     const fileNarration = this.currentFileResult.narration.toLocaleString('ja-JP');
     const fileDialoguePercent = this.currentFileResult.total > 0 
-      ? ((this.currentFileResult.dialogue / this.currentFileResult.total) * 100).toFixed(1)
-      : '0.0';
+      ? Math.round((this.currentFileResult.dialogue / this.currentFileResult.total) * 100)
+      : 0;
     const fileNarrationPercent = this.currentFileResult.total > 0 
-      ? ((this.currentFileResult.narration / this.currentFileResult.total) * 100).toFixed(1)
-      : '0.0';
+      ? Math.round((this.currentFileResult.narration / this.currentFileResult.total) * 100)
+      : 0;
 
     // ディレクトリ全体の情報
     const dirTotal = this.directoryResult.total.toLocaleString('ja-JP');
     const dirDialogue = this.directoryResult.dialogue.toLocaleString('ja-JP');
     const dirNarration = this.directoryResult.narration.toLocaleString('ja-JP');
     const dirDialoguePercent = this.directoryResult.total > 0 
-      ? ((this.directoryResult.dialogue / this.directoryResult.total) * 100).toFixed(1)
-      : '0.0';
+      ? Math.round((this.directoryResult.dialogue / this.directoryResult.total) * 100)
+      : 0;
     const dirNarrationPercent = this.directoryResult.total > 0 
-      ? ((this.directoryResult.narration / this.directoryResult.total) * 100).toFixed(1)
-      : '0.0';
+      ? Math.round((this.directoryResult.narration / this.directoryResult.total) * 100)
+      : 0;
+
+    // 進捗と残り文字数
+    const targetStr = targetWords.toLocaleString('ja-JP');
+    const progressPercent = targetWords > 0 
+      ? Math.round((this.directoryResult.total / targetWords) * 100)
+      : 0;
+    const remaining = Math.max(0, targetWords - this.directoryResult.total);
+    const remainingStr = remaining.toLocaleString('ja-JP');
 
     // OutputChannelをクリアして情報を表示
     this.outputChannel.clear();
-    this.outputChannel.appendLine('📊 文字数詳細情報');
+    this.outputChannel.appendLine('NoktoKalkulo');
     this.outputChannel.appendLine('');
-    this.outputChannel.appendLine('【現在のファイル】');
+    this.outputChannel.appendLine('=== 現在のファイル ===');
+    this.outputChannel.appendLine('');
     this.outputChannel.appendLine(`総文字数: ${fileTotal}字`);
-    this.outputChannel.appendLine(`├ セリフ: ${fileDialogue}字 (${fileDialoguePercent}%)`);
-    this.outputChannel.appendLine(`└ 地の文: ${fileNarration}字 (${fileNarrationPercent}%)`);
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine(`セリフ: ${fileDialogue}字 (${fileDialoguePercent}%)`);
+    this.outputChannel.appendLine(`地の文: ${fileNarration}字 (${fileNarrationPercent}%)`);
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine('----------------------------------------');
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine('=== ディレクトリ合計 ===');
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine(`総文字数: ${dirTotal}字 / ${targetStr}字`);
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine(`進捗: ${progressPercent}%`);
+    this.outputChannel.appendLine(`残り: ${remainingStr}字`);
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine(`セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)`);
+    this.outputChannel.appendLine(`地の文: ${dirNarration}字 (${dirNarrationPercent}%)`);
 
-    // ディレクトリ全体の情報が異なる場合のみ表示
-    if (this.directoryResult.total !== this.currentFileResult.total) {
-      this.outputChannel.appendLine('');
-      this.outputChannel.appendLine('【ディレクトリ全体】');
-      this.outputChannel.appendLine(`総文字数: ${dirTotal}字`);
-      this.outputChannel.appendLine(`├ セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)`);
-      this.outputChannel.appendLine(`└ 地の文: ${dirNarration}字 (${dirNarrationPercent}%)`);
-    }
-
-    // 出力パネルを表示
-    this.outputChannel.show();
+    // 出力パネルを表示（フォーカスはエディタに保持）
+    this.outputChannel.show(true);
   }
 
   /**

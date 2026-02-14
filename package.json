@@ -3,7 +3,7 @@
   "displayName": "NoktoKalkulo",
   "description": "小説原稿の文字数カウント",
   "version": "0.1.0",
-  "publisher": "YOUR-PUBLISHER-ID",
+  "publisher": "j-g-ishiko",
   "author": {
     "name": "jgishiko"
   },
@@ -50,16 +50,6 @@
     "configuration": {
       "title": "NoktoKalkulo",
       "properties": {
-        "nokto.wordCount.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "文字数カウント機能を有効にする"
-        },
-        "nokto.wordCount.minWords": {
-          "type": "number",
-          "default": 0,
-          "description": "最小文字数"
-        },
         "nokto.wordCount.targetWords": {
           "type": "number",
           "default": 5000,
@@ -69,11 +59,6 @@
           "type": "boolean",
           "default": true,
           "description": "ステータスバーに表示"
-        },
-        "nokto.wordCount.showBackgroundColor": {
-          "type": "boolean",
-          "default": false,
-          "description": "ステータスバーの背景色を表示"
         }
       }
     }

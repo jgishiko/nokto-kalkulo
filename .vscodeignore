@@ -11,10 +11,9 @@ vsc-extension-quickstart.md
 node_modules/**
 test/**
 
-# ドキュメント類（README.md以外）
+# ドキュメント類（ユーザー向けは含める）
 docs/**
 PUBLISHING.md
-CHANGELOG.md
 
 # ビルド関連
 esbuild.js

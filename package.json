@@ -2,7 +2,7 @@
   "name": "nokto-kalkulo",
   "displayName": "NoktoKalkulo",
   "description": "小説原稿の文字数カウント",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "publisher": "j-g-ishiko",
   "author": {
     "name": "jgishiko"

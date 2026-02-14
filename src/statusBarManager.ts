@@ -11,7 +11,8 @@ export class StatusBarManager {
       vscode.StatusBarAlignment.Left,
       100
     );
-    this.statusBarItem.command = 'nokto.countWords';
+    // クリック時に詳細情報を表示するコマンドに変更
+    this.statusBarItem.command = 'nokto.showDetailedCount';
   }
 
   /**

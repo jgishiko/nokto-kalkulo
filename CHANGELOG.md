@@ -4,6 +4,18 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
 
 ## [Unreleased]
 
+### Added
+
+- ✨ **セリフと地の文の分離カウント機能**（2026-02-14）
+  - かぎ括弧「」と二重かぎ括弧『』で囲まれたセリフを自動判別
+  - セリフと地の文を分離して文字数をカウント
+  - ステータスバークリックで詳細情報を出力パネルに表示
+  - 詳細情報には以下を含む：
+    - 現在のファイルとディレクトリ全体の総文字数
+    - セリフの文字数と全体に占める割合（百分率）
+    - 地の文の文字数と全体に占める割合（百分率）
+  - 新しいコマンド追加：`NoktoKalkulo: Show Detailed Word Count`
+
 ### Changed
 
 - ✨ **ステータスバー表示形式の改善**（2026-02-14）
@@ -11,6 +23,7 @@ All notable changes to the "NoktoKalkulo" extension will be documented in this f
   - より読みやすい表示形式に変更：`📝 現在 | 合計 / 目標 (達成率)`
   - 例：`📝 1,234字 | 3,456字 / 5,000字 (69%)`
   - 単一ファイルの場合は現在のファイルのみ表示：`📝 1,234字 / 5,000字 (25%)`
+  - ステータスバークリックで詳細情報を表示するように変更
 
 ### Planned
 

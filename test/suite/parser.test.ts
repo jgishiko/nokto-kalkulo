@@ -148,4 +148,66 @@ suite('ManuscriptParser Test Suite', () => {
     // = 3 + 15 + 14 + 4 + 13 = 49文字
     assert.strictEqual(count, 49);
   });
-});
+
+  // 詳細カウント（地の文とセリフの分離）テスト
+  test('セリフと地の文の分離：基本', () => {
+    const text = '太郎は「こんにちは」と言った。';
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 太郎はこんにちはと言った = 11文字
+    // セリフ: こんにちは = 5文字
+    // 地の文: 太郎はと言った = 6文字
+    assert.strictEqual(result.total, 11);
+    assert.strictEqual(result.dialogue, 5);
+    assert.strictEqual(result.narration, 6);
+  });
+
+  test('セリフと地の文の分離：複数のセリフ', () => {
+    const text = '太郎は「やあ」と声をかけた。花子は「こんにちは」と答えた。';
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 太郎はやあと声をかけた花子はこんにちはと答えた = 22文字
+    // セリフ: やあ + こんにちは = 2 + 5 = 7文字
+    // 地の文: 太郎はと声をかけた花子はと答えた = 15文字
+    assert.strictEqual(result.total, 22);
+    assert.strictEqual(result.dialogue, 7);
+    assert.strictEqual(result.narration, 15);
+  });
+
+  test('セリフと地の文の分離：セリフのみ', () => {
+    const text = '「こんにちは、元気ですか？」';
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: こんにちは元気ですか = 10文字
+    // セリフ: こんにちは元気ですか = 10文字
+    // 地の文: 0文字
+    assert.strictEqual(result.total, 10);
+    assert.strictEqual(result.dialogue, 10);
+    assert.strictEqual(result.narration, 0);
+  });
+
+  test('セリフと地の文の分離：地の文のみ', () => {
+    const text = '太郎は静かに歩いていった。';
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 太郎は静かに歩いていった = 12文字
+    // セリフ: 0文字
+    // 地の文: 太郎は静かに歩いていった = 12文字
+    assert.strictEqual(result.total, 12);
+    assert.strictEqual(result.dialogue, 0);
+    assert.strictEqual(result.narration, 12);
+  });
+
+  test('セリフと地の文の分離：二重かぎ括弧', () => {
+    const text = '彼は『古事記』を読んでいた。';
+    const result = parser.countWordsDetailed(text);
+    // 総文字数: 彼は古事記を読んでいた = 11文字
+    // セリフ: 古事記 = 3文字（『』内もセリフとして扱う）
+    // 地の文: 彼はを読んでいた = 8文字
+    assert.strictEqual(result.total, 11);
+    assert.strictEqual(result.dialogue, 3);
+    assert.strictEqual(result.narration, 8);
+  });
+
+  test('セリフと地の文の分離：空文字列', () => {
+    const result = parser.countWordsDetailed('');
+    assert.strictEqual(result.total, 0);
+    assert.strictEqual(result.dialogue, 0);
+    assert.strictEqual(result.narration, 0);
+  });

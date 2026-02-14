@@ -26,6 +26,17 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(countCommand);
 
+  // コマンド登録: 詳細な文字数情報を表示
+  const detailedCountCommand = vscode.commands.registerCommand(
+    'nokto.showDetailedCount',
+    () => {
+      if (controller) {
+        controller.showDetailedCount();
+      }
+    }
+  );
+  context.subscriptions.push(detailedCountCommand);
+
   // コマンド登録: デバッグカウント
   const debugCommand = vscode.commands.registerCommand(
     'nokto.debugCount',

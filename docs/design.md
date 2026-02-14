@@ -8,6 +8,14 @@
 
 Markdown原稿ファイル内の文字数を正確にカウントし、ステータスバーに表示する。
 
+### 主要機能
+
+1. **文字数カウント** - 文字要素のみを正確にカウント
+2. **ディレクトリ合計** - 同じディレクトリ配下の全ファイルの合計を計算
+3. **目標達成度表示** - 目標文字数に対する進捗をパーセンテージで表示
+4. **セリフと地の文の分離** - かぎ括弧内のセリフと地の文を自動判別してカウント
+5. **詳細情報表示** - ステータスバークリックまたはコマンドで詳細な内訳を表示
+
 ---
 
 ## カウント対象の仕様
@@ -102,7 +110,30 @@ Markdown原稿ファイル内の文字数を正確にカウントし、ステー
 ### コマンドパレット
 
 - `NoktoKalkulo: Count Manuscript Words` - 手動カウント実行・通知表示
+- `NoktoKalkulo: Show Detailed Word Count` - 詳細な文字数情報をOutputChannelに表示
 - `nokto.debugCount`（開発者向け） - デバッグ情報をコンソールに出力
+
+### 詳細情報表示
+
+ステータスバーをクリックするか、コマンドパレットから `Show Detailed Word Count` を実行すると、**出力パネル（OUTPUT）** に以下の情報が表示されます：
+
+```text
+📊 文字数詳細情報
+
+【現在のファイル】
+総文字数: 1,234字
+├ セリフ: 456字 (37.0%)
+└ 地の文: 778字 (63.0%)
+
+【ディレクトリ全体】
+総文字数: 5,678字
+├ セリフ: 2,000字 (35.2%)
+└ 地の文: 3,678字 (64.8%)
+```
+
+- **セリフ**: かぎ括弧「」と二重かぎ括弧『』で囲まれた部分の文字数
+- **地の文**: セリフ以外の本文の文字数
+- **百分率**: 総文字数に対する割合
 
 ---
 
@@ -115,12 +146,15 @@ extension.ts
 ├── activate() - 拡張機能の起動
 ├── WordCountController - メインコントローラー
 │   ├── updateWordCount() - 文字数更新
+│   ├── showDetailedCount() - 詳細情報表示
+│   ├── countFilesInDirectoryDetailed() - ディレクトリ内の詳細カウント
 │   └── onDocumentChange() - ドキュメント変更監視
 ├── ManuscriptParser - 原稿パーサー
+│   ├── countWords() - 文字数カウント
+│   ├── countWordsDetailed() - 詳細カウント（セリフと地の文）
+│   ├── countDialogue() - セリフのカウント
 │   ├── removeMarkdownElements() - Markdown要素除去
-│   ├── normalizeDialogue() - 会話文の正規化
-│   ├── normalizeSpecialCharacters() - 特殊文字の正規化
-│   └── countWords() - 文字数カウント
+│   └── countCharacters() - 文字要素カウント
 └── StatusBarManager - ステータスバー管理
     ├── update() - 表示更新
     └── setTarget() - 目標文字数設定
@@ -145,6 +179,49 @@ class ManuscriptParser {
     
     // 2. 文字要素のみを抽出してカウント
     return this.countCharacters(text);
+  }
+
+  /**
+   * 詳細な文字数をカウント（セリフと地の文を分離）
+   * @param content - Markdownファイルの全内容
+   * @returns 詳細な文字数情報
+   */
+  countWordsDetailed(content: string): WordCountResult {
+    if (!content) {
+      return { total: 0, dialogue: 0, narration: 0 };
+    }
+
+    // 1. Markdown要素を除去
+    let text = this.removeMarkdownElements(content);
+
+    // 2. セリフと地の文を分離してカウント
+    const dialogueCount = this.countDialogue(text);
+    const totalCount = this.countCharacters(text);
+    const narrationCount = totalCount - dialogueCount;
+
+    return {
+      total: totalCount,
+      dialogue: dialogueCount,
+      narration: narrationCount
+    };
+  }
+
+  /**
+   * セリフ（かぎ括弧内のテキスト）の文字数をカウント
+   * @param text テキスト
+   * @returns セリフの文字数
+   */
+  private countDialogue(text: string): number {
+    // かぎ括弧「」と二重かぎ括弧『』の両方を対象とする
+    const dialogueRegex = /[「『]([^」』]*)[」』]/g;
+    let matches;
+    let dialogueText = '';
+    
+    while ((matches = dialogueRegex.exec(text)) !== null) {
+      dialogueText += matches[1];
+    }
+
+    return this.countCharacters(dialogueText);
   }
 
   /**

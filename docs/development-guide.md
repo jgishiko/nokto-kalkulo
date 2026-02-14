@@ -121,6 +121,10 @@ nokto-kalkulo/
       {
         "command": "nokto.countWords",
         "title": "NoktoKalkulo: Count Manuscript Words"
+      },
+      {
+        "command": "nokto.showDetailedCount",
+        "title": "NoktoKalkulo: Show Detailed Word Count"
       }
     ],
     "configuration": {
@@ -205,10 +209,14 @@ export class WordCountController {
   private parser: ManuscriptParser;
   private statusBar: StatusBarManager;
   private disposable: vscode.Disposable;
+  private currentFileResult: WordCountResult | null = null;
+  private directoryResult: WordCountResult | null = null;
+  private outputChannel: vscode.OutputChannel;
 
   constructor() {
     this.parser = new ManuscriptParser();
     this.statusBar = new StatusBarManager();
+    this.outputChannel = vscode.window.createOutputChannel('NoktoKalkulo');
     
     // イベントリスナーを登録
     vscode.window.onDidChangeActiveTextEditor(...);
@@ -219,13 +227,21 @@ export class WordCountController {
   }
 
   async updateWordCount(): Promise<void> {
-    // 現在のファイルの文字数をカウント
+    // 現在のファイルの文字数をカウント（詳細版）
+    this.currentFileResult = this.parser.countWordsDetailed(content);
     // ディレクトリ合計を計算
+    this.directoryResult = await this.countFilesInDirectoryDetailed(directoryUri);
     // ステータスバーに表示
   }
 
-  private async countFilesInDirectory(directoryUri: vscode.Uri): Promise<number> {
-    // ディレクトリ配下の全.mdファイルの合計文字数を計算
+  private async countFilesInDirectoryDetailed(directoryUri: vscode.Uri): Promise<WordCountResult> {
+    // ディレクトリ配下の全.mdファイルの詳細文字数を計算
+    // セリフと地の文を分離して集計
+  }
+
+  showDetailedCount(): void {
+    // OutputChannelに詳細情報を表示
+    // セリフと地の文の文字数、割合を出力
   }
 
   private async getConfiguration(fileUri?: vscode.Uri) {
@@ -239,6 +255,7 @@ export class WordCountController {
 ✅ `src/statusBarManager.ts` を作成
 ✅ コントローラーと連携
 ✅ 背景色表示機能を実装
+✅ クリック時の詳細情報表示への連携
 
 ```typescript
 // statusBarManager.ts の主要機能
@@ -289,6 +306,17 @@ export function activate(context: vscode.ExtensionContext) {
   );
   context.subscriptions.push(countCommand);
 
+  // コマンド登録: 詳細な文字数情報を表示
+  const detailedCountCommand = vscode.commands.registerCommand(
+    'nokto.showDetailedCount',
+    () => {
+      if (controller) {
+        controller.showDetailedCount();
+      }
+    }
+  );
+  context.subscriptions.push(detailedCountCommand);
+
   // デバッグコマンド
   const debugCommand = vscode.commands.registerCommand(
     'nokto.debugCount',
@@ -321,6 +349,9 @@ export function deactivate() {
 - [x] 最小文字数・目標文字数の設定
 - [x] 背景色表示機能
 - [x] ディレクトリ固有の設定ファイル（`.nokto.json`）
+- [x] セリフと地の文の分離カウント
+- [x] 詳細情報表示（セリフと地の文の文字数と割合）
+- [x] OutputChannelへの詳細情報出力
 
 ### 📋 今後の拡張候補
 

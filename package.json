@@ -41,6 +41,10 @@
       {
         "command": "nokto.countWords",
         "title": "NoktoKalkulo: Count Manuscript Words"
+      },
+      {
+        "command": "nokto.showDetailedCount",
+        "title": "NoktoKalkulo: Show Detailed Word Count"
       }
     ],
     "configuration": {
@@ -65,6 +69,11 @@
           "type": "boolean",
           "default": true,
           "description": "ステータスバーに表示"
+        },
+        "nokto.wordCount.showBackgroundColor": {
+          "type": "boolean",
+          "default": false,
+          "description": "ステータスバーの背景色を表示"
         }
       }
     }

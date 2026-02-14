@@ -1,4 +1,16 @@
 /**
+ * 文字数カウントの結果
+ */
+export interface WordCountResult {
+  /** 総文字数 */
+  total: number;
+  /** セリフの文字数 */
+  dialogue: number;
+  /** 地の文の文字数 */
+  narration: number;
+}
+
+/**
  * ManuscriptParser - ノクターンノベルズ原稿の文字数カウント
  * 
  * カウント規則:
@@ -27,6 +39,50 @@ export class ManuscriptParser {
 
     // 2. 文字要素のみを抽出してカウント
     return this.countCharacters(text);
+  }
+
+  /**
+   * 原稿の詳細な文字数をカウント（地の文とセリフを分離）
+   * @param content 原稿テキスト
+   * @returns 詳細な文字数情報
+   */
+  countWordsDetailed(content: string): WordCountResult {
+    if (!content) {
+      return { total: 0, dialogue: 0, narration: 0 };
+    }
+
+    // 1. Markdownのメタデータ、コメント、コードブロックを除外
+    let text = this.removeMarkdownElements(content);
+
+    // 2. セリフと地の文を分離してカウント
+    const dialogueCount = this.countDialogue(text);
+    const totalCount = this.countCharacters(text);
+    const narrationCount = totalCount - dialogueCount;
+
+    return {
+      total: totalCount,
+      dialogue: dialogueCount,
+      narration: narrationCount
+    };
+  }
+
+  /**
+   * セリフ（かぎ括弧内のテキスト）の文字数をカウント
+   * @param text テキスト
+   * @returns セリフの文字数
+   */
+  private countDialogue(text: string): number {
+    // かぎ括弧「」と二重かぎ括弧『』の両方を対象とする
+    // 入れ子にも対応する必要があるため、順次処理
+    const dialogueRegex = /[「『]([^」』]*)[」』]/g;
+    let matches;
+    let dialogueText = '';
+    
+    while ((matches = dialogueRegex.exec(text)) !== null) {
+      dialogueText += matches[1];
+    }
+
+    return this.countCharacters(dialogueText);
   }
 
   /**
@@ -96,6 +152,13 @@ export class ManuscriptParser {
     const characterRegex = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFFa-zA-Z0-9\uFF21-\uFF3A\uFF41-\uFF5A\uFF10-\uFF19]/g;
     const chars = step1.match(characterRegex) || [];
     console.log('4. Extracted characters (first 50):', chars.slice(0, 50).join(''));
+    
+    // 詳細カウント情報
+    const detailed = this.countWordsDetailed(content);
+    console.log('5. Detailed count:');
+    console.log('   Total:', detailed.total);
+    console.log('   Dialogue:', detailed.dialogue);
+    console.log('   Narration:', detailed.narration);
     
     console.log('Final count:', count);
     console.log('==============================');

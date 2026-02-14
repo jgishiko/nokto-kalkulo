@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { ManuscriptParser } from './manuscriptParser';
+import { ManuscriptParser, WordCountResult } from './manuscriptParser';
 import { StatusBarManager } from './statusBarManager';
 
 /**
@@ -9,10 +9,16 @@ export class WordCountController {
   private parser: ManuscriptParser;
   private statusBar: StatusBarManager;
   private disposable: vscode.Disposable;
+  // 現在のカウント結果をキャッシュ（ポップアップ表示用）
+  private currentFileResult: WordCountResult | null = null;
+  private directoryResult: WordCountResult | null = null;
+  // 出力チャネル
+  private outputChannel: vscode.OutputChannel;
 
   constructor() {
     this.parser = new ManuscriptParser();
     this.statusBar = new StatusBarManager();
+    this.outputChannel = vscode.window.createOutputChannel('NoktoKalkulo');
     
     // イベントリスナーを登録
     const subscriptions: vscode.Disposable[] = [];
@@ -153,25 +159,31 @@ export class WordCountController {
     // 機能が無効、またはエディタがない場合
     if (!config.enabled || !editor) {
       this.statusBar.hide();
+      this.currentFileResult = null;
+      this.directoryResult = null;
       return;
     }
 
     // 原稿ファイルでない場合
     if (!this.isManuscriptFile(editor.document)) {
       this.statusBar.hide();
+      this.currentFileResult = null;
+      this.directoryResult = null;
       return;
     }
 
-    // 現在のファイルの文字数をカウント
+    // 現在のファイルの文字数をカウント（詳細版）
     const content = editor.document.getText();
-    const currentCount = this.parser.countWords(content);
+    this.currentFileResult = this.parser.countWordsDetailed(content);
 
     // 同じディレクトリの合計文字数を取得
     const directoryUri = vscode.Uri.joinPath(editor.document.uri, '..');
-    const directoryTotal = await this.countFilesInDirectory(directoryUri);
+    this.directoryResult = await this.countFilesInDirectoryDetailed(directoryUri);
 
     // ステータスバーに表示
     if (config.showInStatusBar) {
+      const currentCount = this.currentFileResult.total;
+      const directoryTotal = this.directoryResult.total;
       this.statusBar.update(currentCount, directoryTotal, config.minWords, config.targetWords, config.showBackgroundColor);
     } else {
       this.statusBar.hide();
@@ -182,6 +194,14 @@ export class WordCountController {
    * 指定したディレクトリ（配下のサブディレクトリを含む）内の全ファイルの合計文字数を取得
    */
   private async countFilesInDirectory(directoryUri: vscode.Uri): Promise<number> {
+    const result = await this.countFilesInDirectoryDetailed(directoryUri);
+    return result.total;
+  }
+
+  /**
+   * 指定したディレクトリ（配下のサブディレクトリを含む）内の全ファイルの詳細な文字数を取得
+   */
+  private async countFilesInDirectoryDetailed(directoryUri: vscode.Uri): Promise<WordCountResult> {
     try {
       // ディレクトリ配下のすべてのmarkdownファイルを検索（サブディレクトリも含む）
       const pattern = new vscode.RelativePattern(directoryUri, '**/*.md');
@@ -189,17 +209,27 @@ export class WordCountController {
 
       // 各ファイルの文字数を合計
       let totalCount = 0;
+      let dialogueCount = 0;
+      let narrationCount = 0;
+
       for (const fileUri of files) {
         const doc = await vscode.workspace.openTextDocument(fileUri);
         const content = doc.getText();
-        totalCount += this.parser.countWords(content);
+        const result = this.parser.countWordsDetailed(content);
+        totalCount += result.total;
+        dialogueCount += result.dialogue;
+        narrationCount += result.narration;
       }
 
-      return totalCount;
+      return {
+        total: totalCount,
+        dialogue: dialogueCount,
+        narration: narrationCount
+      };
     } catch (error) {
       // eslint-disable-next-line no-undef
       console.error('Error calculating directory total:', error);
-      return 0;
+      return { total: 0, dialogue: 0, narration: 0 };
     }
   }
 
@@ -221,10 +251,64 @@ export class WordCountController {
   }
 
   /**
+   * 詳細な文字数情報をポップアップで表示
+   */
+  showDetailedCount(): void {
+    if (!this.currentFileResult || !this.directoryResult) {
+      vscode.window.showWarningMessage('文字数情報がありません');
+      return;
+    }
+
+    // 現在のファイルの情報
+    const fileTotal = this.currentFileResult.total.toLocaleString('ja-JP');
+    const fileDialogue = this.currentFileResult.dialogue.toLocaleString('ja-JP');
+    const fileNarration = this.currentFileResult.narration.toLocaleString('ja-JP');
+    const fileDialoguePercent = this.currentFileResult.total > 0 
+      ? ((this.currentFileResult.dialogue / this.currentFileResult.total) * 100).toFixed(1)
+      : '0.0';
+    const fileNarrationPercent = this.currentFileResult.total > 0 
+      ? ((this.currentFileResult.narration / this.currentFileResult.total) * 100).toFixed(1)
+      : '0.0';
+
+    // ディレクトリ全体の情報
+    const dirTotal = this.directoryResult.total.toLocaleString('ja-JP');
+    const dirDialogue = this.directoryResult.dialogue.toLocaleString('ja-JP');
+    const dirNarration = this.directoryResult.narration.toLocaleString('ja-JP');
+    const dirDialoguePercent = this.directoryResult.total > 0 
+      ? ((this.directoryResult.dialogue / this.directoryResult.total) * 100).toFixed(1)
+      : '0.0';
+    const dirNarrationPercent = this.directoryResult.total > 0 
+      ? ((this.directoryResult.narration / this.directoryResult.total) * 100).toFixed(1)
+      : '0.0';
+
+    // OutputChannelをクリアして情報を表示
+    this.outputChannel.clear();
+    this.outputChannel.appendLine('📊 文字数詳細情報');
+    this.outputChannel.appendLine('');
+    this.outputChannel.appendLine('【現在のファイル】');
+    this.outputChannel.appendLine(`総文字数: ${fileTotal}字`);
+    this.outputChannel.appendLine(`├ セリフ: ${fileDialogue}字 (${fileDialoguePercent}%)`);
+    this.outputChannel.appendLine(`└ 地の文: ${fileNarration}字 (${fileNarrationPercent}%)`);
+
+    // ディレクトリ全体の情報が異なる場合のみ表示
+    if (this.directoryResult.total !== this.currentFileResult.total) {
+      this.outputChannel.appendLine('');
+      this.outputChannel.appendLine('【ディレクトリ全体】');
+      this.outputChannel.appendLine(`総文字数: ${dirTotal}字`);
+      this.outputChannel.appendLine(`├ セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)`);
+      this.outputChannel.appendLine(`└ 地の文: ${dirNarration}字 (${dirNarrationPercent}%)`);
+    }
+
+    // 出力パネルを表示
+    this.outputChannel.show();
+  }
+
+  /**
    * リソースを解放
    */
   dispose(): void {
     this.disposable.dispose();
     this.statusBar.dispose();
+    this.outputChannel.dispose();
   }
 }

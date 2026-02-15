@@ -227,6 +227,9 @@ export class WordCountController {
   showDetailedCount(): void {
     // OutputChannelに詳細情報を表示
     // セリフと地の文の文字数、割合を出力
+    // ちらつき防止のため以下の最適化を実装：
+    // 1. デバウンス処理（1秒）で連続更新を防止
+    // 2. 差分更新で不要な再描画を回避
   }
 
   private async getConfiguration(fileUri?: vscode.Uri) {
@@ -332,6 +335,62 @@ export function deactivate() {
 - [x] セリフと地の文の分離カウント
 - [x] 詳細情報表示（セリフと地の文の文字数と割合）
 - [x] OutputChannelへの詳細情報出力
+- [x] 出力パネルのちらつき防止（デバウンス + 差分更新）
+
+### 🎯 パフォーマンス最適化
+
+#### 出力パネルのちらつき防止
+
+テキスト編集時の出力パネル更新でちらつきが発生する問題に対し、以下の最適化を実装：
+
+**1. デバウンス処理**
+```typescript
+// wordCountController.ts
+private debounceTimer: NodeJS.Timeout | null = null;
+
+private async onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent): Promise<void> {
+  if (this.isManuscriptFile(e.document)) {
+    // 前のタイマーをクリア
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+    
+    // 最後の変更から1秒待機してから更新
+    this.debounceTimer = setTimeout(async () => {
+      await this.updateWordCount();
+      if (this.autoShowDetailedInfo) {
+        await this.showDetailedCount(true);
+      }
+    }, 1000);
+  }
+}
+```
+
+**2. 差分更新によるちらつき軽減**
+```typescript
+// wordCountController.ts
+private lastOutputContent: string | null = null;
+
+async showDetailedCount(autoUpdate: boolean = false): Promise<void> {
+  // 出力内容を生成
+  let outputContent = 'NoktoKalkulo\n\n...';
+  
+  // 前回の内容と異なる場合のみ更新
+  if (this.lastOutputContent !== outputContent) {
+    this.lastOutputContent = outputContent;
+    this.outputChannel.clear();
+    // ...出力処理
+  }
+}
+```
+
+**効果:**
+- 連続入力時の更新頻度を削減（1文字ごと → 1秒間隔）
+- 不要な再描画を回避（変更がない場合はスキップ）
+- エディタのフォーカスを保持したまま更新
+
+**設定:**
+デバウンス時間は `wordCountController.ts` の `setTimeout` の第2引数で調整可能（デフォルト: 1000ms）
 
 ### 📋 今後の拡張候補
 

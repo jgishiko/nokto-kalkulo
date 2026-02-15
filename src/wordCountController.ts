@@ -16,6 +16,11 @@ export class WordCountController {
   private outputChannel: vscode.OutputChannel;
   // 詳細情報の自動表示フラグ（一度表示したら以降は自動更新する）
   private autoShowDetailedInfo: boolean = false;
+  
+  // デバウンス用タイマー
+  private debounceTimer: NodeJS.Timeout | null = null;
+  // 前回の出力パネル更新内容をキャッシュ（差分更新用）
+  private lastOutputContent: string | null = null;
 
   constructor() {
     this.parser = new ManuscriptParser();
@@ -68,11 +73,19 @@ export class WordCountController {
    */
   private async onDidChangeTextDocument(e: vscode.TextDocumentChangeEvent): Promise<void> {
     if (this.isManuscriptFile(e.document)) {
-      await this.updateWordCount();
-      // 一度詳細情報を表示したら、以降は自動更新する
-      if (this.autoShowDetailedInfo && this.currentFileResult && this.directoryResult) {
-        await this.showDetailedCount(true);
+      // デバウンス: 前のタイマーをクリア
+      if (this.debounceTimer) {
+        clearTimeout(this.debounceTimer);
       }
+
+      // 最後の変更から1秒待機してから更新（リアルタイム性より安定性を重視）
+      this.debounceTimer = setTimeout(async () => {
+        await this.updateWordCount();
+        // 一度詳細情報を表示したら、以降は自動更新する
+        if (this.autoShowDetailedInfo && this.currentFileResult && this.directoryResult) {
+          await this.showDetailedCount(true);
+        }
+      }, 1000);
     }
   }
 
@@ -292,21 +305,14 @@ export class WordCountController {
       ? Math.round((this.directoryResult.narration / this.directoryResult.total) * 100)
       : 0;
 
-    // OutputChannelをクリアして情報を表示
-    this.outputChannel.clear();
-    this.outputChannel.appendLine('NoktoKalkulo');
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine('=== 現在のファイル ===');
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine(`総文字数: ${fileTotal}字`);
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine(`セリフ: ${fileDialogue}字 (${fileDialoguePercent}%)`);
-    this.outputChannel.appendLine(`地の文: ${fileNarration}字 (${fileNarrationPercent}%)`);
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine('----------------------------------------');
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine('=== ディレクトリ合計 ===');
-    this.outputChannel.appendLine('');
+    // 出力内容を生成
+    let outputContent = 'NoktoKalkulo\n\n';
+    outputContent += '=== 現在のファイル ===\n\n';
+    outputContent += `総文字数: ${fileTotal}字\n\n`;
+    outputContent += `セリフ: ${fileDialogue}字 (${fileDialoguePercent}%)\n`;
+    outputContent += `地の文: ${fileNarration}字 (${fileNarrationPercent}%)\n\n`;
+    outputContent += '----------------------------------------\n\n';
+    outputContent += '=== ディレクトリ合計 ===\n\n';
     
     // 目標文字数が設定されている場合のみ進捗情報を表示
     if (targetWords > 0) {
@@ -315,17 +321,30 @@ export class WordCountController {
       const remaining = Math.max(0, targetWords - this.directoryResult.total);
       const remainingStr = remaining.toLocaleString('ja-JP');
       
-      this.outputChannel.appendLine(`総文字数: ${dirTotal}字 / ${targetStr}字`);
-      this.outputChannel.appendLine('');
-      this.outputChannel.appendLine(`進捗: ${progressPercent}%`);
-      this.outputChannel.appendLine(`残り: ${remainingStr}字`);
+      outputContent += `総文字数: ${dirTotal}字 / ${targetStr}字\n\n`;
+      outputContent += `進捗: ${progressPercent}%\n`;
+      outputContent += `残り: ${remainingStr}字\n`;
     } else {
-      this.outputChannel.appendLine(`総文字数: ${dirTotal}字`);
+      outputContent += `総文字数: ${dirTotal}字\n`;
     }
     
-    this.outputChannel.appendLine('');
-    this.outputChannel.appendLine(`セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)`);
-    this.outputChannel.appendLine(`地の文: ${dirNarration}字 (${dirNarrationPercent}%)`);
+    outputContent += '\n';
+    outputContent += `セリフ: ${dirDialogue}字 (${dirDialoguePercent}%)\n`;
+    outputContent += `地の文: ${dirNarration}字 (${dirNarrationPercent}%)\n`;
+
+    // 前回の内容と異なる場合のみ更新（差分更新でちらつき軽減）
+    if (this.lastOutputContent !== outputContent) {
+      this.lastOutputContent = outputContent;
+      
+      // OutputChannelをクリアして情報を表示
+      this.outputChannel.clear();
+      
+      // 行ごとに追加（バッチ処理）
+      const lines = outputContent.split('\n');
+      lines.forEach(line => {
+        this.outputChannel.appendLine(line);
+      });
+    }
 
     // 出力パネルを表示（フォーカスはエディタに保持）
     this.outputChannel.show(true);
@@ -335,6 +354,12 @@ export class WordCountController {
    * リソースを解放
    */
   dispose(): void {
+    // デバウンス タイマーをクリア
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
+    }
+
     this.disposable.dispose();
     this.statusBar.dispose();
     this.outputChannel.dispose();
